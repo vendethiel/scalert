@@ -1,0 +1,17 @@
+name: scalert
+version: 0.1.0
+
+authors:
+  - vendethiel <vendethiel@hotmail.fr>
+
+targets:
+  scalert:
+    main: src/scalert.cr
+
+dependencies:
+  discordcr:
+    github: meew0/discordcr
+     
+crystal: 0.23.1
+
+license: MIT
