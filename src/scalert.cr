@@ -168,31 +168,6 @@ class ScAlert
     end
   end
 
-  def poll_events
-    current_events = run_category("levents").try{|c| c.map &.id} || [] of Int64
-    puts("start events: #{current_events}")
-    loop do
-      begin
-        events = run_category("levents") || [] of ScEvent
-        puts("current events: #{current_events}")
-        puts("fetched events: #{events}")
-
-        # Keep only events that havn't been announced yet (this is Array#-)
-        new_events = events.reject{|e| current_events.includes?(e.id) }
-        puts("new events: #{new_events}")
-        if new_events.size > 0
-        end
-
-        # update the events list
-        current_events += new_events.map(&.id)
-        # TODO clear old events SOMEHOW (timer? only keep N latest IDs?)
-      rescue e
-        puts "Rescued exception\n#{e.message}"
-      end
-      sleep 5.minutes
-    end
-  end
-
   def map_events(events)
     events.compact_map do |event|
       name = ScEvent.json_name(event)
