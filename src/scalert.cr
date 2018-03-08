@@ -115,6 +115,8 @@ class ScAlert
   }
   LP_EVENT_CHANNELS = {
     421347777944092673_u64 => %w(SC2),      # Test server #upcoming-lp
+
+    358594873311494154_u64 => %w(SC2),      # StarCraftEsport #event-notifier
   }
   ADMINS = [
     116306741058207744_u64, # Ven
