@@ -85,6 +85,8 @@ class ScAlert
 
     298210628546592770_u64 => %w(SCBW),     # FRA-1 #broodwar-fra-1
 
+    358594873311494154_u64 => %w(SC2),      # StarCraftEsport #event-notifier
+
     273399319418372107_u64 => %w(SC2),      # Lounge #temple-of-blizzard
 
     217387119461531649_u64 => %w(SC2),      # D'A #rds
@@ -102,6 +104,8 @@ class ScAlert
     121390401386053633_u64 => %w(SC2 SCBW), # /r/starcraft #lobby
 
     298210628546592770_u64 => %w(SCBW),     # FRA-1 #broodwar-fra-1
+
+    358594873311494154_u64 => %w(SC2),      # StarCraftEsport #event-notifier
 
     273399319418372107_u64 => %w(SC2),      # Lounge #temple-of-blizzard
 
