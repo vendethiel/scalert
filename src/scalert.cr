@@ -82,6 +82,12 @@ class ScAlert
 
     121397879918166026_u64 => %w(SC2),      # /r/starcraft #events
     205070579861028864_u64 => %w(SCBW),     # /r/starcraft #broodwar
+
+    298210628546592770_u64 => %w(SCBW),     # FRA-1 #broodwar-fra-1
+
+    217387119461531649_u64 => %w(SC2),      # D'A #rds
+
+    216957690520272896_u64 => %w(SC2),      # Heart #general
   }
   EVENTS_COMMAND = {
     328555540831666178_u64 => %w(SC2 SCBW), # Test server #general
@@ -92,6 +98,12 @@ class ScAlert
     121397879918166026_u64 => %w(SC2),      # /r/starcraft #events
     205070579861028864_u64 => %w(SCBW),     # /r/starcraft #broodwar
     121390401386053633_u64 => %w(SC2 SCBW), # /r/starcraft #lobby
+
+    298210628546592770_u64 => %w(SCBW),     # FRA-1 #broodwar-fra-1
+
+    217387119461531649_u64 => %w(SC2)       # D'A #rds
+
+    216957690520272896_u64 => %w(SC2),      # Heart #general
   }
   LP_EVENT_CHANNELS = {
     421347777944092673_u64 => %w(SC2),      # Test server #upcoming-lp
@@ -117,8 +129,7 @@ class ScAlert
     events.map{|e| e.to_s(show_game)}.join("\n")
   end
 
-  def with_poller(category, &block)
-    current_events = run_category(category).try{|c| c.map &.id} || [] of Int64
+  def with_poller(current_events, category, &block)
     puts("[#{category}] start events: #{current_events}")
     loop do
       begin
@@ -139,7 +150,8 @@ class ScAlert
   end
 
   def poll_live_events
-    with_poller("levents") do |events|
+    current_events = run_category("levents").try{|c| c.map &.id} || [] of Int64
+    with_poller(current_events, "levents") do |events|
       # for each channel to announce on...
       ANNOUNCEMENTS.each do |channel_id, games|
         events_to_announce = events.select{|e| games.includes?(e.game)}
@@ -153,15 +165,15 @@ class ScAlert
   end
 
   def poll_lp_events # Poll Liquipedia soon™ events
-    timers = [5..15].map{|i| "#{i}m"}
-    with_poller("uevents") do |events|
+    timers = (5..15).map{|i| "#{i}m"}
+    with_poller([] of Int64, "uevents") do |events|
       events_soon = events.select{|e| timers.includes?(e.timer)}
       LP_EVENT_CHANNELS.each do |channel_id, games|
-        events_to_announce = events.select{|e| games.includes?(e.game)}
+        events_to_announce = events_soon.select{|e| games.includes?(e.game)}
         events_to_announce.each do |e|
           details = fetch_details(e.id)
           url = details ? " (<#{details["lp"].as_s}>)" : ""
-          @client.create_message(channel_id, " ** SOON **\n#{e}#{url}")
+          @client.create_message(channel_id, " ** SOON **\n#{e.to_s}#{url}")
         end
       end
       events_soon # return events to mark "seen"
@@ -177,7 +189,7 @@ class ScAlert
   end
 
   def fetch_details(event_id)
-    response = HTTP::Client.get("event/#{event_id}")
+    response = HTTP::Client.get("#{API_BASE_URL}/event/#{event_id}")
     if response.status_code != 200
       return nil
     end
