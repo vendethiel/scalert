@@ -85,6 +85,8 @@ class ScAlert
 
     298210628546592770_u64 => %w(SCBW),     # FRA-1 #broodwar-fra-1
 
+    273399319418372107_u64 => %w(SC2),      # Lounge #temple-of-blizzard
+
     217387119461531649_u64 => %w(SC2),      # D'A #rds
 
     216957690520272896_u64 => %w(SC2),      # Heart #general
@@ -101,7 +103,9 @@ class ScAlert
 
     298210628546592770_u64 => %w(SCBW),     # FRA-1 #broodwar-fra-1
 
-    217387119461531649_u64 => %w(SC2)       # D'A #rds
+    273399319418372107_u64 => %w(SC2),      # Lounge #temple-of-blizzard
+
+    217387119461531649_u64 => %w(SC2),      # D'A #rds
 
     216957690520272896_u64 => %w(SC2),      # Heart #general
   }
