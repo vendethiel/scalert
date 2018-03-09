@@ -85,8 +85,6 @@ class ScAlert
 
     298210628546592770_u64 => %w(SCBW),     # FRA-1 #broodwar-fra-1
 
-    358594873311494154_u64 => %w(SC2),      # StarCraftEsport #event-notifier
-
     273399319418372107_u64 => %w(SC2),      # Lounge #temple-of-blizzard
 
     217387119461531649_u64 => %w(SC2),      # D'A #rds
@@ -105,7 +103,7 @@ class ScAlert
 
     298210628546592770_u64 => %w(SCBW),     # FRA-1 #broodwar-fra-1
 
-    358594873311494154_u64 => %w(SC2),      # StarCraftEsport #event-notifier
+    199151213835583488_u64 => %w(SC2),      # StarCraftEsport #tweeting-team
 
     273399319418372107_u64 => %w(SC2),      # Lounge #temple-of-blizzard
 
@@ -182,8 +180,8 @@ class ScAlert
         events_to_announce = events_soon.select{|e| games.includes?(e.game)}
         events_to_announce.each do |e|
           details = fetch_details(e.id)
-          url = details ? " (<#{details["lp"].as_s}>)" : ""
-          @client.create_message(channel_id, " ** SOON **\n#{e.to_s}#{url}")
+          extra = details ? "#{details["subtext"].as_s} (<#{details["lp"].as_s}>)" : ""
+          @client.create_message(channel_id, " ** SOON **\n#{e.to_s}#{extra}")
         end
       end
       events_soon # return events to mark "seen"
