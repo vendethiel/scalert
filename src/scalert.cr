@@ -236,9 +236,10 @@ class ScAlert
         command_events(payload, true)
       elsif payload.content == "!help"
         command_help(payload)
-      elsif parts[0] == "!stream" && parts.size == 3
-        # TODO join parts[1..-2], and use parts[-1] as url
-        command_stream(payload, parts[1], parts[2])
+      elsif parts[0] == "!stream"
+        parts.shift # remove "!stream"
+        url = parts.pop
+        command_stream(payload, parts.join(" "), url)
       end
     end
   end
@@ -265,7 +266,6 @@ class ScAlert
     channel = payload.channel_id
     return unless EVENTS_COMMAND.has_key?(channel) || LP_EVENT_CHANNELS.has_key?(channel) || ANNOUNCEMENTS.has_key?(channel)
 
-    # TODO throttle should probably include channel id
     with_throttle("help/#{channel}", 20.seconds) do
       @client.create_message(channel, "Bot commands:\n * `!events` - Shows a list of today's events\n * `!events all` - Shows this week's events\n * `!help` - This command")
     end
