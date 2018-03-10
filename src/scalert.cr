@@ -17,7 +17,7 @@ class Alias
         @aliases[parts[0]] = parts[1]
       end
     rescue e
-      puts("Unable to open file:\n#{e.message}")
+      puts("Unable to open file:\n#{e.inspect_with_backtrace}")
     end
   end
 
@@ -151,7 +151,7 @@ class ScAlert
           current_events += (yield new_events).map &.id
         end
       rescue e
-        puts "Rescued exception\n#{e.message}"
+        puts "Rescued poller exception\n#{e.inspect_with_backtrace}"
       end
       sleep 5.minutes
     end
@@ -180,8 +180,16 @@ class ScAlert
         events_to_announce = events_soon.select{|e| games.includes?(e.game)}
         events_to_announce.each do |e|
           details = fetch_details(e.id)
-          extra = details ? "#{details["subtext"].as_s} (<#{details["lp"].as_s}>)" : ""
-          @client.create_message(channel_id, " ** SOON **\n#{e.to_s}#{extra}")
+          extra = [e.timer]
+          begin
+            if details
+              extra += details["subtext"].as_s?
+              extra += details["lp"].as_s?
+            end
+          rescue e
+            puts("Unable to extract details for event #{e.id}:\n#{e.inspect_with_backtrace}")
+          end
+          @client.create_message(channel_id, " ** SOON **\n#{e.name} #{extra.join(' ')}")
         end
       end
       events_soon # return events to mark "seen"
