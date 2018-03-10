@@ -189,7 +189,7 @@ class ScAlert
           rescue ex
             puts("Unable to extract details for event #{e.id}:\n#{ex.inspect_with_backtrace}")
           end
-          @client.create_message(channel_id, " ** SOON **\n#{e.name} #{extra.join(' ')}")
+          @client.create_message(channel_id, " ** SOON ** #{e.name}\n#{extra.join(' ')}")
         end
       end
       events_soon # return events to mark "seen"
