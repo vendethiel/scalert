@@ -16,8 +16,8 @@ class Alias
         parts = line.split('=', 2)
         @aliases[parts[0]] = parts[1]
       end
-    rescue e
-      puts("Unable to open file:\n#{e.inspect_with_backtrace}")
+    rescue ex
+      puts("Unable to open file:\n#{ex.inspect_with_backtrace}")
     end
   end
 
@@ -150,8 +150,8 @@ class ScAlert
         if new_events.size > 0
           current_events += (yield new_events).map &.id
         end
-      rescue e
-        puts "Rescued poller exception\n#{e.inspect_with_backtrace}"
+      rescue ex
+        puts "Rescued poller exception\n#{ex.inspect_with_backtrace}"
       end
       sleep 5.minutes
     end
@@ -186,8 +186,8 @@ class ScAlert
               extra << details["subtext"].as_s?
               extra << details["lp"].as_s?
             end
-          rescue e
-            puts("Unable to extract details for event #{e.id}:\n#{e.inspect_with_backtrace}")
+          rescue ex
+            puts("Unable to extract details for event #{e.id}:\n#{ex.inspect_with_backtrace}")
           end
           @client.create_message(channel_id, " ** SOON **\n#{e.name} #{extra.join(' ')}")
         end
