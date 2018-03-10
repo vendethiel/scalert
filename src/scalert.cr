@@ -183,8 +183,8 @@ class ScAlert
           extra = [e.timer]
           begin
             if details
-              extra += details["subtext"].as_s?
-              extra += details["lp"].as_s?
+              extra << details["subtext"].as_s?
+              extra << details["lp"].as_s?
             end
           rescue e
             puts("Unable to extract details for event #{e.id}:\n#{e.inspect_with_backtrace}")
