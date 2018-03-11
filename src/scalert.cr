@@ -164,7 +164,7 @@ class ScAlert
         events_to_announce = events.select{|e| games.includes?(e.game)}
         next unless events_to_announce.size > 0
         show_game = games.size > 1 # show the game if there could be confusion
-        private_create_message(channel_id, " ** LIVE **\n" + format_events(events_to_announce, show_game))
+        safe_create_message(channel_id, " ** LIVE **\n" + format_events(events_to_announce, show_game))
       end
 
       events # return events to mark "seen"
@@ -179,7 +179,7 @@ class ScAlert
         events_to_announce = events_soon.select{|e| games.includes?(e.game)}
         events_to_announce.each do |e|
           details = fetch_details(e.id)
-          extra = [e.timer]
+          extra = [e.timer.try{|t| "(#{t})"}]
           begin
             if details
               extra << details["subtext"].as_s?
@@ -188,7 +188,7 @@ class ScAlert
           rescue ex
             puts("Unable to extract details for event #{e.id}:\n#{ex.inspect_with_backtrace}")
           end
-          private_create_message(channel_id, " ** SOON ** #{e.name}\n#{extra.join(' ')}")
+          safe_create_message(channel_id, " ** SOON ** #{e.name}\n#{extra.join(' ')}")
         end
       end
       events_soon # return events to mark "seen"
@@ -273,7 +273,7 @@ class ScAlert
     return unless EVENTS_COMMAND.has_key?(channel) || LP_EVENT_CHANNELS.has_key?(channel) || ANNOUNCEMENTS.has_key?(channel)
 
     with_throttle("help/#{channel}", 20.seconds) do
-      private_create_message(channel, "Bot commands:\n * `!events` - Shows a list of today's events\n * `!events all` - Shows this week's events\n * `!help` - This command")
+      safe_create_message(channel, "Bot commands:\n * `!events` - Shows a list of today's events\n * `!events all` - Shows this week's events\n * `!help` - This command")
     end
   end
 
@@ -290,9 +290,9 @@ class ScAlert
         next unless events
         events_to_announce = filter_longterm(events.select{|e| games.includes?(e.game)}, longterm)
         if events_to_announce.size > 0
-          private_create_message(channel, " ** #{label} **\n" + format_events(events_to_announce[0..MAX_EVENTS], show_game))
+          safe_create_message(channel, " ** #{label} **\n" + format_events(events_to_announce[0..MAX_EVENTS], show_game))
         elsif category == "uevents"
-          private_create_message(channel, "No upcoming events for #{games.join(", ")}.")
+          safe_create_message(channel, "No upcoming events for #{games.join(", ")}.")
         end
       end
     end
@@ -307,7 +307,7 @@ private
     end
   end
 
-  def private_create_message(channel, message)
+  def safe_create_message(channel, message)
     begin
       @client.create_message(channel, message)
     rescue ex
