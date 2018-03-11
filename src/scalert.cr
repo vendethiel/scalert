@@ -88,8 +88,6 @@ class ScAlert
     273399319418372107_u64 => %w(SC2),      # Lounge #temple-of-blizzard
 
     217387119461531649_u64 => %w(SC2),      # D'A #rds
-
-    216957690520272896_u64 => %w(SC2),      # Heart #general
   }
   EVENTS_COMMAND = {
     328555540831666178_u64 => %w(SC2 SCBW), # Test server #general
@@ -116,6 +114,7 @@ class ScAlert
 
     358594873311494154_u64 => %w(SC2),      # StarCraftEsport #event-notifier
   }
+  SUPERADMIN = 116306741058207744_u64 # Ven
   ADMINS = [
     116306741058207744_u64, # Ven
 
@@ -165,7 +164,7 @@ class ScAlert
         events_to_announce = events.select{|e| games.includes?(e.game)}
         next unless events_to_announce.size > 0
         show_game = games.size > 1 # show the game if there could be confusion
-        @client.create_message(channel_id, " ** LIVE **\n" + format_events(events_to_announce, show_game))
+        private_create_message(channel_id, " ** LIVE **\n" + format_events(events_to_announce, show_game))
       end
 
       events # return events to mark "seen"
@@ -189,7 +188,7 @@ class ScAlert
           rescue ex
             puts("Unable to extract details for event #{e.id}:\n#{ex.inspect_with_backtrace}")
           end
-          @client.create_message(channel_id, " ** SOON ** #{e.name}\n#{extra.join(' ')}")
+          private_create_message(channel_id, " ** SOON ** #{e.name}\n#{extra.join(' ')}")
         end
       end
       events_soon # return events to mark "seen"
@@ -236,6 +235,8 @@ class ScAlert
         command_events(payload, true)
       elsif payload.content == "!help"
         command_help(payload)
+      elsif payload.content == "!exit"
+        command_exit(payload)
       elsif parts[0] == "!stream"
         parts.shift # remove "!stream"
         url = parts.pop
@@ -252,6 +253,11 @@ class ScAlert
     end
   end
 
+  def command_exit(payload)
+    return if payload.author.id != SUPERADMIN
+    Process.exit
+  end
+
   def command_stream(payload, name, url)
     if !ADMINS.includes?(payload.author.id)
       puts("Unauthorized command from #{payload.author.id}")
@@ -259,7 +265,7 @@ class ScAlert
     end
     clean_url = url.lchop('<').rchop('>')
     @aliases[name] = clean_url
-    @client.create_message(payload.channel_id, "Stream url of **#{name}** set to <#{clean_url}>")
+    safe_create_message(payload.channel_id, "Stream url of **#{name}** set to <#{clean_url}>")
   end
 
   def command_help(payload)
@@ -267,7 +273,7 @@ class ScAlert
     return unless EVENTS_COMMAND.has_key?(channel) || LP_EVENT_CHANNELS.has_key?(channel) || ANNOUNCEMENTS.has_key?(channel)
 
     with_throttle("help/#{channel}", 20.seconds) do
-      @client.create_message(channel, "Bot commands:\n * `!events` - Shows a list of today's events\n * `!events all` - Shows this week's events\n * `!help` - This command")
+      private_create_message(channel, "Bot commands:\n * `!events` - Shows a list of today's events\n * `!events all` - Shows this week's events\n * `!help` - This command")
     end
   end
 
@@ -284,19 +290,28 @@ class ScAlert
         next unless events
         events_to_announce = filter_longterm(events.select{|e| games.includes?(e.game)}, longterm)
         if events_to_announce.size > 0
-          @client.create_message(channel, " ** #{label} **\n" + format_events(events_to_announce[0..MAX_EVENTS], show_game))
+          private_create_message(channel, " ** #{label} **\n" + format_events(events_to_announce[0..MAX_EVENTS], show_game))
         elsif category == "uevents"
-          @client.create_message(channel, "No upcoming events for #{games.join(", ")}.")
+          private_create_message(channel, "No upcoming events for #{games.join(", ")}.")
         end
       end
     end
   end
 
+private
   def filter_longterm(events, longterm)
     if longterm
       events
     else # no longterm events, reject those with "d" in their timer
       events.reject{|e| e.timer.try{|t| t.includes?("d")}}
+    end
+  end
+
+  def private_create_message(channel, message)
+    begin
+      @client.create_message(channel, message)
+    rescue ex
+      puts("Unable to create message on #{channel}")
     end
   end
 end
