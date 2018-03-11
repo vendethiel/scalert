@@ -298,8 +298,7 @@ class ScAlert
     end
   end
 
-private
-  def filter_longterm(events, longterm)
+  private def filter_longterm(events, longterm)
     if longterm
       events
     else # no longterm events, reject those with "d" in their timer
@@ -307,7 +306,7 @@ private
     end
   end
 
-  def safe_create_message(channel, message)
+  private def safe_create_message(channel, message)
     begin
       @client.create_message(channel, message)
     rescue ex
