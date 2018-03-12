@@ -87,7 +87,7 @@ class ScAlert
 
     273399319418372107_u64 => %w(SC2),      # Lounge #temple-of-blizzard
 
-    217387119461531649_u64 => %w(SC2),      # D'A #rds
+    422668615842791425_u64 => %w(SC2),      # D'A #eventl
   }
   EVENTS_COMMAND = {
     328555540831666178_u64 => %w(SC2 SCBW), # Test server #general
