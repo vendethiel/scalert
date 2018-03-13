@@ -264,7 +264,7 @@ class ScAlert
 
     bool_true = %w(on yes y + 1)
     bool_false = %w(off no n - 0)
-    unless bool_true.includes?(bool_str) || bool_false.includes?(bool_str)
+    unless bool_str == "?" ||bool_true.includes?(bool_str) || bool_false.includes?(bool_str)
       safe_create_message(channel, "Invalid boolean value, try on/off")
       return
     end
@@ -280,26 +280,33 @@ class ScAlert
 
     case feature
     when "lp"
-      new_games = helper_command_feature(lp_event_channels, channel, bool, games)
+      hash = lp_event_channels
     when "events"
-      new_games = helper_command_feature(events_command, channel, bool, games)
+      hash = events_command
     when "announcements"
-      new_games = helper_command_feature(announcements, channel, bool, games)
+      hash = announcements
     else
       safe_create_message(channel, "Invalid feature, try lp/events/announcements")
       return
     end
-    new_games_str = new_games.size ? "enabled for #{new_games.join(", ")}" : "disabled"
-    safe_create_message(channel, "#{bool ? "Enabled" : "Disabled"} #{feature} for games #{games.join(", ")}. Now feature is #{new_games_str}.")
+
+    if bool_str == "?"
+      games = hash.fetch(channel, %w())
+      safe_create_message(channel, "Feature " + (games.size ? "Enabled for games #{games.join(", ")}." : "Disabled."))
+    else
+      # add/remove
+      current_games = hash.fetch(channel, %w())
+      updated_games = bool ? current_games + games : current_games - games
+      new_games = updated_games.uniq
+      hash[channel] = new_games
+      @config.save!
+
+      new_games_str = new_games.size ? "enabled for #{new_games.join(", ")}" : "disabled"
+      safe_create_message(channel, "#{bool ? "Enabled" : "Disabled"} #{feature} for games #{games.join(", ")}. Now feature is #{new_games_str}.")
+    end
   end
 
   private def helper_command_feature(hash, channel_id, bool, games)
-    current_games = hash.fetch(channel_id, %w())
-    updated_games = bool ? current_games + games : current_games - games
-    new_games = updated_games.uniq
-    hash[channel_id] = new_games
-    @config.save!
-    new_games
   end
 
   def command_exit(payload)
@@ -319,7 +326,7 @@ class ScAlert
 
   def command_help(payload)
     channel = payload.channel_id
-    return unless known_channel?(channel)
+    return unless known_channel?(channel) # XXX means we can't get help for !feature, no big deal
 
     with_throttle("help/#{channel}", 20.seconds) do
       admin_help = admin?(payload.author.id) ? "\n * `!stream <event name> <event url>` - Changes the stream URL of an event\n * `!feature [lp|events|announcements] [on|off] <games>` - Enables or disable a bot feature for some (comma-separated) game(s)" : ""
