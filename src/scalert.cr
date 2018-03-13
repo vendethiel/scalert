@@ -27,7 +27,7 @@ class Alias
     @aliases[key] = value
     save!
   end
-  
+
   private def save!
     File.write(@filename, self.to_s)
   end
@@ -46,7 +46,7 @@ class ScEvent
 
   def initialize(@id, @name, @game, event, name_url)
     if event["timer"]?
-      @timer = event["timer"].as_s
+        @timer = event["timer"].as_s
       @desc = @timer
     elsif name_url # by-name stream URL
       @url = name_url
@@ -74,68 +74,62 @@ class ScEvent
   end
 end
 
+# Converts between a Hash(String, Array(String)) and Hash(UInt64, Array(String))
+# XXX that Array(String) probably wants to be an Array(Game enum)
+module GameHashConverter
+  def self.to_json(value : Hash(UInt64, Array(String)), json : JSON::Builder)
+    json.object do
+      value.each do |k, v|
+        json.field k.to_s do
+          json.array do
+            v.each {|game| json.string(game)}
+          end
+        end
+      end
+    end
+  end
+
+  def self.from_json(json : JSON::PullParser)
+    hash = {} of UInt64 => Array(String)
+    json.read_object do |key|
+      games = [] of String
+      json.read_array do
+        games << json.read_string
+      end
+      hash[key.to_u64] = games
+    end
+    hash
+  end
+end
+
+class ScConfig
+  setter filename : String | Nil
+  def save!
+    puts("Saving config to #{CONFIG_FILE}")
+
+    filename = @filename
+    Process.exit "No config file" unless filename # means someome changed the config loading code
+    File.write(filename, to_pretty_json)
+  end
+
+  JSON.mapping(
+    max_events: Int32,
+    announcements: {type: Hash(UInt64, Array(String)), converter: GameHashConverter},
+    events_command: {type: Hash(UInt64, Array(String)), converter: GameHashConverter},
+    lp_event_channels: {type: Hash(UInt64, Array(String)), converter: GameHashConverter},
+    admins: Array(UInt64)
+  )
+end
+
 class ScAlert
-  MAX_EVENTS = 10
-  ANNOUNCEMENTS = {
-    328555540831666178_u64 => %w(SC2 SCBW), # Test server, #general
-
-    306615995466776586_u64 => %w(SCBW),     # FBW #announcements
-    306259732153368576_u64 => %w(SCBW),     # FBW #general
-
-    121397879918166026_u64 => %w(SC2),      # /r/starcraft #events
-    205070579861028864_u64 => %w(SCBW),     # /r/starcraft #broodwar
-
-    298210628546592770_u64 => %w(SCBW),     # FRA-1 #broodwar-fra-1
-
-    273399319418372107_u64 => %w(SC2),      # Lounge #temple-of-blizzard
-
-    422668615842791425_u64 => %w(SC2),      # D'A #eventl
-  }
-  EVENTS_COMMAND = {
-    328555540831666178_u64 => %w(SC2 SCBW), # Test server #general
-    421332119118151680_u64 => %w(SC2),      # Test server #command-events-sc2
-
-    306259732153368576_u64 => %w(SCBW),     # FBW #general
-
-    121397879918166026_u64 => %w(SC2),      # /r/starcraft #events
-    205070579861028864_u64 => %w(SCBW),     # /r/starcraft #broodwar
-    121390401386053633_u64 => %w(SC2 SCBW), # /r/starcraft #lobby
-
-    298210628546592770_u64 => %w(SCBW),     # FRA-1 #broodwar-fra-1
-
-    199151213835583488_u64 => %w(SC2),      # StarCraftEsport #tweeting-team
-
-    273399319418372107_u64 => %w(SC2),      # Lounge #temple-of-blizzard
-
-    217387119461531649_u64 => %w(SC2),      # D'A #rds
-
-    216957690520272896_u64 => %w(SC2),      # Heart #general
-  }
-  LP_EVENT_CHANNELS = {
-    421347777944092673_u64 => %w(SC2),      # Test server #upcoming-lp
-
-    358594873311494154_u64 => %w(SC2),      # StarCraftEsport #event-notifier
-  }
-  SUPERADMIN = 116306741058207744_u64 # Ven
-  ADMINS = [
-    116306741058207744_u64, # Ven
-
-    133280548951949312_u64, # Kuro
-    117555772560244739_u64, # Light
-
-    122146132120829952_u64, # zelderan
-    176810078647746560_u64, # Faust
-
-    121386832746250241_u64  # Naemesis
-  ]
-
-  def initialize(@client : Discord::Client, alias_filename : String)
+  def initialize(@client : Discord::Client, @config : ScConfig, alias_filename : String)
     @aliases = Alias.new(alias_filename)
     @timers = {} of String => Time
-    @announcements = ANNOUNCEMENTS
-    @events_command = EVENTS_COMMAND
-    @lp_event_channels = LP_EVENT_CHANNELS
+    @config.save!
+    Process.exit
   end
+
+  delegate max_events, announcements, events_command, lp_event_channels, admins, to: @config
 
   def format_events(events, show_game)
     events.map{|e| e.to_s(show_game)}.join("\n")
@@ -165,7 +159,7 @@ class ScAlert
     current_events = run_category("levents").try{|c| c.map &.id} || [] of Int64
     with_poller(current_events, "levents") do |events|
       # for each channel to announce on...
-      @announcements.each do |channel_id, games|
+      announcements.each do |channel_id, games|
         events_to_announce = events.select{|e| games.includes?(e.game)}
         next unless events_to_announce.size > 0
         show_game = games.size > 1 # show the game if there could be confusion
@@ -178,9 +172,15 @@ class ScAlert
 
   def poll_lp_events # Poll Liquipedia soon™ events
     timers = (5..15).map{|i| "#{i}m"}
-    with_poller([] of Int64, "uevents") do |events|
-      events_soon = events.select{|e| timers.includes?(e.timer)}
-      @lp_event_channels.each do |channel_id, games|
+    filter_soon_events = ->(events : Array(ScEvent)) { events.select{|e| timers.includes?(e.timer)} }
+
+    # don't announce events that are soon™ when the bot starts
+    # (so that we can start and stop the bot several times in a row without spamming)
+    current_events = filter_soon_events.call(run_category("levents") || [] of ScEvent).map &.id
+
+    with_poller(current_events, "uevents") do |events|
+      events_soon = filter_soon_events.call(events)
+      lp_event_channels.each do |channel_id, games|
         events_to_announce = events_soon.select{|e| games.includes?(e.game)}
         events_to_announce.each do |e|
           details = fetch_details(e.id)
@@ -188,7 +188,7 @@ class ScAlert
           begin
             if details
               extra << details["subtext"].as_s?
-              extra << details["lp"].as_s?
+              extra << details["lp"].as_s?.try{|lp| "<#{lp}>"}
             end
           rescue ex
             puts("Unable to extract details for event #{e.id}:\n#{ex.inspect_with_backtrace}")
@@ -282,11 +282,11 @@ class ScAlert
 
     case feature
     when "lp"
-      new_games = helper_command_feature(@lp_event_channels, channel, bool, games)
+      new_games = helper_command_feature(lp_event_channels, channel, bool, games)
     when "events"
-      new_games = helper_command_feature(@events_command, channel, bool, games)
+      new_games = helper_command_feature(events_command, channel, bool, games)
     when "announcements"
-      new_games = helper_command_feature(@announcements, channel, bool, games)
+      new_games = helper_command_feature(announcements, channel, bool, games)
     else
       safe_create_message(channel, "Invalid feature, try lp/events/announcements")
       return
@@ -302,12 +302,12 @@ class ScAlert
   end
 
   def command_exit(payload)
-    return if payload.author.id != SUPERADMIN
+    return unless admin?(payload.author.id)
     Process.exit
   end
 
   def command_stream(payload, name, url)
-   unless admin?(payload.author.id)
+    unless admin?(payload.author.id)
       puts("Unauthorized command from #{payload.author.id}")
       return
     end
@@ -327,19 +327,19 @@ class ScAlert
   end
 
   def command_events(payload, longterm)
-    return unless @events_command.has_key?(payload.channel_id)
+    return unless events_command.has_key?(payload.channel_id)
     channel = payload.channel_id
 
     # TODO throttle should probably include channel id
     with_throttle("events/#{channel}", 20.seconds) do
-      games = @events_command[channel]
+      games = events_command[channel]
       show_game = games.size > 1 # show the game if there could be confusion
       {"levents" => "LIVE", "uevents" => "UPCOMING"}.each do |category, label|
         events = run_category(category)
         next unless events
         events_to_announce = filter_longterm(events.select{|e| games.includes?(e.game)}, longterm)
         if events_to_announce.size > 0
-          safe_create_message(channel, " ** #{label} **\n" + format_events(events_to_announce[0..MAX_EVENTS], show_game))
+          safe_create_message(channel, " ** #{label} **\n" + format_events(events_to_announce[0..max_events], show_game))
         elsif category == "uevents"
           safe_create_message(channel, "No upcoming events for #{games.join(", ")}.")
         end
@@ -348,13 +348,13 @@ class ScAlert
   end
 
   private def admin?(user_id)
-    ADMINS.includes?(user_id)
+    @config.admins.includes?(user_id)
   end
 
   private def known_channel?(channel)
-    return true if @announcements.has_key?(channel)
-    return true if @lp_event_channels.has_key?(channel)
-    return true if @events_command.has_key?(channel)
+    return true if announcements.has_key?(channel)
+    return true if lp_event_channels.has_key?(channel)
+    return true if events_command.has_key?(channel)
     return false
   end
 
@@ -376,9 +376,13 @@ class ScAlert
 end
 
 ALIAS_LIST_FILE = "aliases.txt"
+CONFIG_FILE = "config.json"
+
+config = ScConfig.from_json(File.read(CONFIG_FILE))
+config.filename = CONFIG_FILE
 
 client = Discord::Client.new(token: "Bot #{ENV["SCALERT_TOKEN"]}", client_id: ENV["SCALERT_CLIENTID"].to_u64)
-scalert = ScAlert.new(client, ALIAS_LIST_FILE)
+scalert = ScAlert.new(client, config, ALIAS_LIST_FILE)
 spawn { scalert.poll_live_events }
 spawn { scalert.poll_lp_events }
 scalert.run
