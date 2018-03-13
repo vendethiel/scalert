@@ -320,8 +320,8 @@ class ScAlert
     return unless known_channel?(channel)
 
     with_throttle("help/#{channel}", 20.seconds) do
-      admin_cmd = admin?(payload.author.id) ? "\n * `!stream <event name> <event url>` - Changes the stream URL of an event\n * `!feature [lp|events|announcements] [on|off]` - Enables or disable a bot feature" : ""
-      safe_create_message(channel, "Bot commands:\n * `!events` - Shows a list of today's events\n * `!events all` - Shows this week's events\n * `!help` - This command")
+      admin_help = admin?(payload.author.id) ? "\n * `!stream <event name> <event url>` - Changes the stream URL of an event\n * `!feature [lp|events|announcements] [on|off]` - Enables or disable a bot feature" : ""
+      safe_create_message(channel, "Bot commands:\n * `!events` - Shows a list of today's events\n * `!events all` - Shows this week's events\n * `!help` - This command#{admin_help}")
     end
   end
 
