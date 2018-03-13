@@ -287,8 +287,8 @@ class ScAlert
     return unless admin?(payload.author.id)
     channel = payload.channel_id
 
-    bool_true = %w(on yes y + 1)
-    bool_false = %w(off no n - 0)
+    bool_true = %w(on yes y + 1 enable start enter)
+    bool_false = %w(off no n - 0 disable stop leave)
     unless bool_true.includes?(bool_str) || bool_false.includes?(bool_str)
       safe_create_message(channel, "Invalid boolean value, try on/off")
       return
