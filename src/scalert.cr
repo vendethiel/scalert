@@ -274,7 +274,7 @@ class ScAlert
 
     games = games_str.upcase.split(',')
     return unless games.size
-    games = games.map(&.downcase).uniq
+    games = games.map(&.upcase).uniq
     unless games.all?{|g| GAMES.includes?(g)}
       safe_create_message(channel, "Invalid game(s). Try one of #{GAMES.join(", ")}.")
       return
