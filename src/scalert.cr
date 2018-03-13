@@ -291,13 +291,17 @@ class ScAlert
       safe_create_message(channel, "Invalid feature, try lp/events/announcements")
       return
     end
-    safe_create_message(channel, "#{bool ? "Enabled" : "Disabled"} #{feature} for games #{games.join(", ")}.")
   end
 
   private def helper_command_feature(hash, channel_id, bool, games)
     current_games = hash.fetch(channel_id, %w())
     updated_games = bool ? current_games + games : current_games - games
-    hash[channel_id] = updated_games.uniq
+    new_games = updated_games.uniq
+    hash[channel_id] = new_games
+
+    new_games_str = new_games.size "enabled for #{new_games.join(", ")}" : "disabled"
+    # TODO we might want to pass channel_id as a parameter
+    safe_create_message(channel, "#{bool ? "Enabled" : "Disabled"} #{feature} for games #{games.join(", ")}. Now feature is #{new_games_str}.")
   end
 
   def command_exit(payload)
