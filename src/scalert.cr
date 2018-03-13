@@ -125,8 +125,6 @@ class ScAlert
   def initialize(@client : Discord::Client, @config : ScConfig, alias_filename : String)
     @aliases = Alias.new(alias_filename)
     @timers = {} of String => Time
-    @config.save!
-    Process.exit
   end
 
   delegate max_events, announcements, events_command, lp_event_channels, admins, to: @config
@@ -298,7 +296,10 @@ class ScAlert
   private def helper_command_feature(hash, channel_id, bool, games)
     current_games = hash.fetch(channel_id, %w())
     updated_games = bool ? current_games + games : current_games - games
-    hash[channel_id] = updated_games.uniq
+    new_games = updated_games.uniq
+    hash[channel_id] = new_games
+    @config.save!
+    new_games
   end
 
   def command_exit(payload)
