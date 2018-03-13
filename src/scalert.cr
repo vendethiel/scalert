@@ -6,7 +6,7 @@ require "../lib/discordcr/src/discordcr" # include dep
 require "../lib/discordcr/src/discordcr/*" # include dep
 
 API_BASE_URL = "http://elgrandeapidelteamliquid.herokuapp.com"
-GAMES = %w(sc2 scbw csgo hots ssb ow)
+GAMES = %w(sc2 scbw csgo hots ssb ow).map(&.upcase)
 
 class Alias
   def initialize(@filename : String)
@@ -272,7 +272,7 @@ class ScAlert
     end
     bool = bool_true.includes?(bool_str)
 
-    games = games_str.split(',')
+    games = games_str.upcase.split(',')
     return unless games.size
     games = games.map(&.downcase).uniq
     unless games.all?{|g| GAMES.includes?(g)}
