@@ -276,7 +276,7 @@ class ScAlert
     return unless games.size
     games = games.map(&.downcase).uniq
     unless games.all?{|g| GAMES.includes?(g)}
-      safe_create_message(channel, "Invalid game(s). Try one of #{GAMES.join(", ")}")
+      safe_create_message(channel, "Invalid game(s). Try one of #{GAMES.join(", ")}.")
       return
     end
 
@@ -291,7 +291,7 @@ class ScAlert
       safe_create_message(channel, "Invalid feature, try lp/events/announcements")
       return
     end
-    safe_create_message(channel, "Enabled #{feature} for games #{games.join(", ")}.")
+    safe_create_message(channel, "#{bool ? "Enabled" : "Disabled"} #{feature} for games #{games.join(", ")}.")
   end
 
   private def helper_command_feature(hash, channel_id, bool, games)
@@ -320,7 +320,7 @@ class ScAlert
     return unless known_channel?(channel)
 
     with_throttle("help/#{channel}", 20.seconds) do
-      admin_help = admin?(payload.author.id) ? "\n * `!stream <event name> <event url>` - Changes the stream URL of an event\n * `!feature [lp|events|announcements] [on|off]` - Enables or disable a bot feature" : ""
+      admin_help = admin?(payload.author.id) ? "\n * `!stream <event name> <event url>` - Changes the stream URL of an event\n * `!feature [lp|events|announcements] [on|off] <games>` - Enables or disable a bot feature for some (comma-separated) game(s)" : ""
       safe_create_message(channel, "Bot commands:\n * `!events` - Shows a list of today's events\n * `!events all` - Shows this week's events\n * `!help` - This command#{admin_help}")
     end
   end
