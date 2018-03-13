@@ -242,6 +242,8 @@ class ScAlert
         command_exit(payload)
       elsif parts[0] == "!feature" && parts.size == 4
         command_feature(payload, parts[1], parts[2], parts[3])
+      elsif parts[0] == "!feature" && parts.size == 2
+        command_feature_query(payload, parts[1])
       elsif parts[0] == "!stream"
         parts.shift # remove "!stream"
         url = parts.pop
@@ -258,13 +260,26 @@ class ScAlert
     end
   end
 
+  def command_feature_query(payload, feature)
+    return unless admin?(payload.author.id)
+    channel = payload.channel_id
+
+    hash = hash_for_feature(feature)
+    unless hash
+      safe_create_message(channel, "Invalid feature, try lp/events/announcements")
+      return
+    end
+    games = hash.fetch(channel, %w())
+    safe_create_message(channel, "Feature is " + (games.size ? "enabled for games #{games.join(", ")}." : "disabled."))
+  end
+
   def command_feature(payload, feature, bool_str, games_str)
     return unless admin?(payload.author.id)
     channel = payload.channel_id
 
     bool_true = %w(on yes y + 1)
     bool_false = %w(off no n - 0)
-    unless bool_str == "?" ||bool_true.includes?(bool_str) || bool_false.includes?(bool_str)
+    unless bool_true.includes?(bool_str) || bool_false.includes?(bool_str)
       safe_create_message(channel, "Invalid boolean value, try on/off")
       return
     end
@@ -278,35 +293,32 @@ class ScAlert
       return
     end
 
-    case feature
-    when "lp"
-      hash = lp_event_channels
-    when "events"
-      hash = events_command
-    when "announcements"
-      hash = announcements
-    else
+    hash = hash_for_feature(feature)
+    unless hash
       safe_create_message(channel, "Invalid feature, try lp/events/announcements")
       return
     end
 
-    if bool_str == "?"
-      games = hash.fetch(channel, %w())
-      safe_create_message(channel, "Feature " + (games.size ? "Enabled for games #{games.join(", ")}." : "Disabled."))
-    else
-      # add/remove
-      current_games = hash.fetch(channel, %w())
-      updated_games = bool ? current_games + games : current_games - games
-      new_games = updated_games.uniq
-      hash[channel] = new_games
-      @config.save!
+    # add/remove
+    current_games = hash.fetch(channel, %w())
+    updated_games = bool ? current_games + games : current_games - games
+    new_games = updated_games.uniq
+    hash[channel] = new_games
+    @config.save!
 
-      new_games_str = new_games.size ? "enabled for #{new_games.join(", ")}" : "disabled"
-      safe_create_message(channel, "#{bool ? "Enabled" : "Disabled"} #{feature} for games #{games.join(", ")}. Now feature is #{new_games_str}.")
-    end
+    new_games_str = new_games.size ? "enabled for #{new_games.join(", ")}" : "disabled"
+    safe_create_message(channel, "#{bool ? "Enabled" : "Disabled"} #{feature} for games #{games.join(", ")}. Now feature is #{new_games_str}.")
   end
 
-  private def helper_command_feature(hash, channel_id, bool, games)
+  private def hash_for_feature(feature)
+    case feature
+    when "lp"
+      lp_event_channels
+    when "events"
+      events_command
+    when "announcements"
+      announcements
+    end
   end
 
   def command_exit(payload)
