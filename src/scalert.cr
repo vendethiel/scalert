@@ -156,12 +156,16 @@ class ScAlert
   def poll_live_events
     current_events = run_category("levents").try{|c| c.map &.id} || [] of Int64
     with_poller(current_events, "levents") do |events|
-      # for each channel to announce on...
-      announcements.each do |channel_id, games|
-        events_to_announce = events.select{|e| games.includes?(e.game)}
-        next unless events_to_announce.size > 0
-        show_game = games.size > 1 # show the game if there could be confusion
-        safe_create_message(channel_id, " ** LIVE **\n" + format_events(events_to_announce, show_game))
+      begin
+        # for each channel to announce on...
+        announcements.each do |channel_id, games|
+          events_to_announce = events.select{|e| games.includes?(e.game)}
+          next unless events_to_announce.size > 0
+          show_game = games.size > 1 # show the game if there could be confusion
+          safe_create_message(channel_id, " ** LIVE **\n" + format_events(events_to_announce, show_game))
+        end
+      rescue ex
+        puts "Rescued live events poller exception\n#{ex.inspect_with_backtrace}"
       end
 
       events # return events to mark "seen"
@@ -178,22 +182,28 @@ class ScAlert
 
     with_poller(current_events, "uevents") do |events|
       events_soon = filter_soon_events.call(events)
-      lp_event_channels.each do |channel_id, games|
-        events_to_announce = events_soon.select{|e| games.includes?(e.game)}
-        events_to_announce.each do |e|
-          details = fetch_details(e.id)
-          extra = [e.timer.try{|t| "(#{t})"}]
-          begin
-            if details
-              extra << details["subtext"].as_s?
-              extra << details["lp"].as_s?.try{|lp| "<#{lp}>"}
+
+      begin
+        lp_event_channels.each do |channel_id, games|
+          events_to_announce = events_soon.select{|e| games.includes?(e.game)}
+          events_to_announce.each do |e|
+            details = fetch_details(e.id)
+            extra = [e.timer.try{|t| "(#{t})"}]
+            begin
+              if details
+                extra << details["subtext"].as_s?
+                extra << details["lp"].as_s?.try{|lp| "<#{lp}>"}
+              end
+            rescue ex
+              puts("Unable to extract details for event #{e.id}:\n#{ex.inspect_with_backtrace}")
             end
-          rescue ex
-            puts("Unable to extract details for event #{e.id}:\n#{ex.inspect_with_backtrace}")
+            safe_create_message(channel_id, " ** SOON ** #{e.name}\n#{extra.join(' ')}")
           end
-          safe_create_message(channel_id, " ** SOON ** #{e.name}\n#{extra.join(' ')}")
         end
+      rescue ex
+        puts "Rescued lp poller exception\n#{ex.inspect_with_backtrace}"
       end
+
       events_soon # return events to mark "seen"
     end
   end
@@ -286,7 +296,10 @@ class ScAlert
     bool = bool_true.includes?(bool_str)
 
     games = games_str.upcase.split(',')
-    return unless games.size < 1
+    unless games.size < 1
+      safe_create_message(channel, "Invalid game(s). Try one of #{GAMES.join(", ")}.")
+      return
+    end
     games = games.map(&.upcase).uniq
     unless games.all?{|g| GAMES.includes?(g)}
       safe_create_message(channel, "Invalid game(s). Try one of #{GAMES.join(", ")}.")
