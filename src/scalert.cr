@@ -354,7 +354,7 @@ class ScAlert
     return unless known_channel?(channel) # XXX means we can't get help for !feature, no big deal
 
     with_throttle("help/#{channel}", 20.seconds) do
-      admin_help = admin?(payload.author.id) ? "\n * `!stream <event name> <event url>` - Changes the stream URL of an event\n * `!feature [lp|events|announcements] [on|off] <games>` - Enables or disable a bot feature for some (comma-separated) game(s)" : ""
+      admin_help = admin?(payload.author.id) ? "\n * `!stream <event name> <event url>` - Changes the stream URL of an event\n * `!feature [lp|events|announcements] [on|off] [#{GAMES.join(",")},...]` - Enables or disable a bot feature for some (comma-separated) game(s)" : ""
       safe_create_message(channel, "Bot commands:\n * `!events` - Shows a list of today's events\n * `!events all` - Shows this week's events\n * `!help` - This command#{admin_help}")
     end
   end
