@@ -296,7 +296,7 @@ class ScAlert
     bool = bool_true.includes?(bool_str)
 
     games = games_str.upcase.split(',')
-    unless games.size < 1
+    if games.size < 1
       safe_create_message(channel, "Invalid game(s). Try one of #{GAMES.join(", ")}.")
       return
     end
