@@ -282,26 +282,23 @@ class ScAlert
 
     case feature
     when "lp"
-      helper_command_feature(@lp_event_channels, channel, bool, games)
+      new_games = helper_command_feature(@lp_event_channels, channel, bool, games)
     when "events"
-      helper_command_feature(@events_command, channel, bool, games)
+      new_games = helper_command_feature(@events_command, channel, bool, games)
     when "announcements"
-      helper_command_feature(@announcements, channel, bool, games)
+      new_games = helper_command_feature(@announcements, channel, bool, games)
     else
       safe_create_message(channel, "Invalid feature, try lp/events/announcements")
       return
     end
+    new_games_str = new_games.size ? "enabled for #{new_games.join(", ")}" : "disabled"
+    safe_create_message(channel, "#{bool ? "Enabled" : "Disabled"} #{feature} for games #{games.join(", ")}. Now feature is #{new_games_str}.")
   end
 
   private def helper_command_feature(hash, channel_id, bool, games)
     current_games = hash.fetch(channel_id, %w())
     updated_games = bool ? current_games + games : current_games - games
-    new_games = updated_games.uniq
-    hash[channel_id] = new_games
-
-    new_games_str = new_games.size "enabled for #{new_games.join(", ")}" : "disabled"
-    # TODO we might want to pass channel_id as a parameter
-    safe_create_message(channel, "#{bool ? "Enabled" : "Disabled"} #{feature} for games #{games.join(", ")}. Now feature is #{new_games_str}.")
+    hash[channel_id] = updated_games.uniq
   end
 
   def command_exit(payload)
