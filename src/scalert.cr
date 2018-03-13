@@ -6,6 +6,7 @@ require "../lib/discordcr/src/discordcr" # include dep
 require "../lib/discordcr/src/discordcr/*" # include dep
 
 API_BASE_URL = "http://elgrandeapidelteamliquid.herokuapp.com"
+GAMES = %w(sc2 scbw csgo hots ssb ow)
 
 class Alias
   def initialize(@filename : String)
@@ -79,6 +80,7 @@ class ScAlert
     328555540831666178_u64 => %w(SC2 SCBW), # Test server, #general
 
     306615995466776586_u64 => %w(SCBW),     # FBW #announcements
+    306259732153368576_u64 => %w(SCBW),     # FBW #general
 
     121397879918166026_u64 => %w(SC2),      # /r/starcraft #events
     205070579861028864_u64 => %w(SCBW),     # /r/starcraft #broodwar
@@ -130,6 +132,9 @@ class ScAlert
   def initialize(@client : Discord::Client, alias_filename : String)
     @aliases = Alias.new(alias_filename)
     @timers = {} of String => Time
+    @announcements = ANNOUNCEMENTS
+    @events_command = EVENTS_COMMAND
+    @lp_event_channels = LP_EVENT_CHANNELS
   end
 
   def format_events(events, show_game)
@@ -160,7 +165,7 @@ class ScAlert
     current_events = run_category("levents").try{|c| c.map &.id} || [] of Int64
     with_poller(current_events, "levents") do |events|
       # for each channel to announce on...
-      ANNOUNCEMENTS.each do |channel_id, games|
+      @announcements.each do |channel_id, games|
         events_to_announce = events.select{|e| games.includes?(e.game)}
         next unless events_to_announce.size > 0
         show_game = games.size > 1 # show the game if there could be confusion
@@ -175,7 +180,7 @@ class ScAlert
     timers = (5..15).map{|i| "#{i}m"}
     with_poller([] of Int64, "uevents") do |events|
       events_soon = events.select{|e| timers.includes?(e.timer)}
-      LP_EVENT_CHANNELS.each do |channel_id, games|
+      @lp_event_channels.each do |channel_id, games|
         events_to_announce = events_soon.select{|e| games.includes?(e.game)}
         events_to_announce.each do |e|
           details = fetch_details(e.id)
@@ -237,6 +242,8 @@ class ScAlert
         command_help(payload)
       elsif payload.content == "!exit"
         command_exit(payload)
+      elsif parts[0] == "!feature" && parts.size == 4
+        command_feature(payload, parts[1], parts[2], parts[3])
       elsif parts[0] == "!stream"
         parts.shift # remove "!stream"
         url = parts.pop
@@ -253,13 +260,53 @@ class ScAlert
     end
   end
 
+  def command_feature(payload, feature, bool_str, games_str)
+    return unless admin?(payload.author.id)
+    channel = payload.channel_id
+
+    bool_true = %w(on yes y + 1)
+    bool_false = %w(off no n - 0)
+    unless bool_true.includes?(bool_str) || bool_false.includes?(bool_str)
+      safe_create_message(channel, "Invalid boolean value, try on/off")
+      return
+    end
+    bool = bool_true.includes?(bool_str)
+
+    games = games_str.split(',')
+    return unless games.size
+    games = games.map(&.downcase).uniq
+    unless games.all?{|g| GAMES.includes?(g)}
+      safe_create_message(channel, "Invalid game(s). Try one of #{GAMES.join(", ")}")
+      return
+    end
+
+    case feature
+    when "lp"
+      helper_command_feature(@lp_event_channels, channel, bool, games)
+    when "events"
+      helper_command_feature(@events_command, channel, bool, games)
+    when "announcements"
+      helper_command_feature(@announcements, channel, bool, games)
+    else
+      safe_create_message(channel, "Invalid feature, try lp/events/announcements")
+      return
+    end
+    safe_create_message(channel, "Enabled #{feature} for games #{games.join(", ")}.")
+  end
+
+  private def helper_command_feature(hash, channel_id, bool, games)
+    current_games = hash.fetch(channel_id, %w())
+    updated_games = bool ? current_games + games : current_games - games
+    hash[channel_id] = updated_games.uniq
+  end
+
   def command_exit(payload)
     return if payload.author.id != SUPERADMIN
     Process.exit
   end
 
   def command_stream(payload, name, url)
-    if !ADMINS.includes?(payload.author.id)
+   unless admin?(payload.author.id)
       puts("Unauthorized command from #{payload.author.id}")
       return
     end
@@ -270,20 +317,21 @@ class ScAlert
 
   def command_help(payload)
     channel = payload.channel_id
-    return unless EVENTS_COMMAND.has_key?(channel) || LP_EVENT_CHANNELS.has_key?(channel) || ANNOUNCEMENTS.has_key?(channel)
+    return unless known_channel?(channel)
 
     with_throttle("help/#{channel}", 20.seconds) do
+      admin_cmd = admin?(payload.author.id) ? "\n * `!stream <event name> <event url>` - Changes the stream URL of an event\n * `!feature [lp|events|announcements] [on|off]` - Enables or disable a bot feature" : ""
       safe_create_message(channel, "Bot commands:\n * `!events` - Shows a list of today's events\n * `!events all` - Shows this week's events\n * `!help` - This command")
     end
   end
 
   def command_events(payload, longterm)
-    return unless EVENTS_COMMAND.has_key?(payload.channel_id)
+    return unless @events_command.has_key?(payload.channel_id)
     channel = payload.channel_id
 
     # TODO throttle should probably include channel id
     with_throttle("events/#{channel}", 20.seconds) do
-      games = EVENTS_COMMAND[channel]
+      games = @events_command[channel]
       show_game = games.size > 1 # show the game if there could be confusion
       {"levents" => "LIVE", "uevents" => "UPCOMING"}.each do |category, label|
         events = run_category(category)
@@ -296,6 +344,17 @@ class ScAlert
         end
       end
     end
+  end
+
+  private def admin?(user_id)
+    ADMINS.includes?(user_id)
+  end
+
+  private def known_channel?(channel)
+    return true if @announcements.has_key?(channel)
+    return true if @lp_event_channels.has_key?(channel)
+    return true if @events_command.has_key?(channel)
+    return false
   end
 
   private def filter_longterm(events, longterm)
