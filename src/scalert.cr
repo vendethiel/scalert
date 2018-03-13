@@ -270,7 +270,7 @@ class ScAlert
       return
     end
     games = hash.fetch(channel, %w())
-    safe_create_message(channel, "Feature is " + (games.size ? "enabled for games #{games.join(", ")}." : "disabled."))
+    safe_create_message(channel, "Feature is " + (games.size > 0 ? "enabled for games #{games.join(", ")}." : "disabled."))
   end
 
   def command_feature(payload, feature, bool_str, games_str)
@@ -286,7 +286,7 @@ class ScAlert
     bool = bool_true.includes?(bool_str)
 
     games = games_str.upcase.split(',')
-    return unless games.size
+    return unless games.size < 1
     games = games.map(&.upcase).uniq
     unless games.all?{|g| GAMES.includes?(g)}
       safe_create_message(channel, "Invalid game(s). Try one of #{GAMES.join(", ")}.")
@@ -306,7 +306,7 @@ class ScAlert
     hash[channel] = new_games
     @config.save!
 
-    new_games_str = new_games.size ? "enabled for #{new_games.join(", ")}" : "disabled"
+    new_games_str = new_games.size > 0 ? "enabled for #{new_games.join(", ")}" : "disabled"
     safe_create_message(channel, "#{bool ? "Enabled" : "Disabled"} #{feature} for games #{games.join(", ")}. Now feature is #{new_games_str}.")
   end
 
