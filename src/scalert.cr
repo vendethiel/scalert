@@ -384,15 +384,20 @@ class ScAlert
 
   private def mod?(user_id, channel_id)
     return true if admin?(user_id)
-    # TODO get->resolve, but needs a @client.cache (which is optional), ugly AF
-    channel = @client.get_channel(channel_id) # TODO resolve_channel
-    guild_id = channel.guild_id
-    return unless guild_id # this means a DM
-    guild = @client.get_guild(guild_id) # TODO resolve_guild
-    member = @client.get_guild_member(guild_id, user_id) # TODO resolve_member
-    guild.roles
-      .select {|role| member.roles.includes?(role.id) || role.id == guild.id } # @everyone is a role with id=guild.id
-      .any? {|role| role.permissions.manage_channels? || role.permissions.administrator? }
+    begin
+      # TODO get->resolve, but needs a @client.cache (which is optional), ugly AF
+      channel = @client.get_channel(channel_id) # TODO resolve_channel
+      guild_id = channel.guild_id
+      return unless guild_id # this means a DM
+      guild = @client.get_guild(guild_id) # TODO resolve_guild
+      member = @client.get_guild_member(guild_id, user_id) # TODO resolve_member
+      guild.roles
+        .select {|role| member.roles.includes?(role.id) || role.id == guild.id } # @everyone is a role with id=guild.id
+        .any? {|role| role.permissions.manage_channels? || role.permissions.administrator? }
+    rescue ex
+      puts("Unable to check permissions for user=#{user_id} and channel=#{channel_id}")
+      false
+    end
   end
 
   private def admin?(user_id)
