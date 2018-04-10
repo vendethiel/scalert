@@ -320,6 +320,14 @@ class ScAlert
 
     # add/remove
     current_games = hash.fetch(channel, %w())
+    if bool && games.all? {|game| games.includes?(game) }
+      safe_create_message(channel, "Feature already enabled for the given game(s).")
+      return
+    end
+    if !bool && games.none? {|game| games.includes?(game) }
+      safe_create_message(channel, "Feature already disabled for the given game(s).")
+      return
+    end
     updated_games = bool ? current_games + games : current_games - games
     new_games = updated_games.uniq
     hash[channel] = new_games
@@ -329,7 +337,7 @@ class ScAlert
     now_games = new_games.sort.join(", ") # games that are now enabled/disabled
     new_games_str = " Now feature is " + (new_games.size > 0 ? "enabled for #{now_games}." : "disabled.")
     new_games_message = given_games == now_games ? "" : new_games_str # Don't state it twice, if the command contained all the games that are now enabled
-    safe_create_message(channel, "#{bool ? "Enabled" : "Disabled"} #{feature} for games #{given_games}.#{new_games_message}")
+    safe_create_message(channel, "#{bool ? "Enabled" : "Disabled"} #{feature} for game(s) #{given_games}.#{new_games_message}")
   end
 
   private def hash_for_feature(feature)
@@ -363,7 +371,7 @@ class ScAlert
     return unless known_channel?(channel) # XXX means we can't get help for !feature, no big deal
 
     with_throttle("help/#{channel}", 20.seconds) do
-      mod_help = mod?(payload.author.id, payload.channel_id) ? "`!feature [lp|events|announcements] [on|off] [#{GAMES.join(",")},...]` - Enables or disable a bot feature for some (comma-separated) game(s)" : ""
+      mod_help = mod?(payload.author.id, payload.channel_id) ? "\n`!feature [lp|events|announcements] [on|off] [#{GAMES.join(",")},...]` - Enables or disable a bot feature for some (comma-separated) game(s)" : ""
       admin_help = admin?(payload.author.id) ? "\n * `!stream <event name> <event url>` - Changes the stream URL of an event\n *" : ""
       safe_create_message(channel, "Bot commands:\n * `!events` - Shows a list of today's events\n * `!events all` - Shows this week's events\n * `!help` - This command#{mod_help}#{admin_help}")
     end
