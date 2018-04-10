@@ -320,11 +320,11 @@ class ScAlert
 
     # add/remove
     current_games = hash.fetch(channel, %w())
-    if bool && games.all? {|game| games.includes?(game) }
+    if bool && games.all? {|game| current_games.includes?(game) }
       safe_create_message(channel, "Feature already enabled for the given game(s).")
       return
     end
-    if !bool && games.none? {|game| games.includes?(game) }
+    if !bool && games.none? {|game| current_games.includes?(game) }
       safe_create_message(channel, "Feature already disabled for the given game(s).")
       return
     end
@@ -371,7 +371,7 @@ class ScAlert
     return unless known_channel?(channel) # XXX means we can't get help for !feature, no big deal
 
     with_throttle("help/#{channel}", 20.seconds) do
-      mod_help = mod?(payload.author.id, payload.channel_id) ? "\n`!feature [lp|events|announcements] [on|off] [#{GAMES.join(",")},...]` - Enables or disable a bot feature for some (comma-separated) game(s)" : ""
+      mod_help = mod?(payload.author.id, payload.channel_id) ? "\n * `!feature [lp|events|announcements] [on|off] [#{GAMES.join(",")},...]` - Enables or disable a bot feature for some (comma-separated) game(s)" : ""
       admin_help = admin?(payload.author.id) ? "\n * `!stream <event name> <event url>` - Changes the stream URL of an event\n *" : ""
       safe_create_message(channel, "Bot commands:\n * `!events` - Shows a list of today's events\n * `!events all` - Shows this week's events\n * `!help` - This command#{mod_help}#{admin_help}")
     end
