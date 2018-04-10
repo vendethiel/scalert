@@ -319,10 +319,11 @@ class ScAlert
     hash[channel] = new_games
     @config.save!
 
-    new_games_str = new_games.size > 0 ? "enabled for #{new_games.join(", ")}" : "disabled"
-    given_games_str = games.join(", ")
-    new_features_str = new_games_str == given_games_str ? "" : " Now feature is #{new_games_str}."
-    safe_create_message(channel, "#{bool ? "Enabled" : "Disabled"} #{feature} for games #{games.join(", ")}.#{new_features_str}")
+    given_games = games.sort.join(", ") # games to enable/disable
+    now_games = new_games.sort.join(", ") # games that are now enabled/disabled
+    new_games_str = " Now feature is " + (new_games.size > 0 ? "enabled for #{now_games}." : "disabled.")
+    new_games_message = given_games == now_games ? "" : new_games_str # Don't state it twice, if the command contained all the games that are now enabled
+    safe_create_message(channel, "#{bool ? "Enabled" : "Disabled"} #{feature} for games #{given_games}.#{new_games_message}")
   end
 
   private def hash_for_feature(feature)
