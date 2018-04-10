@@ -397,8 +397,13 @@ class ScAlert
       # TODO get->resolve, but needs a @client.cache (which is optional), ugly AF
       channel = @client.get_channel(channel_id) # TODO resolve_channel
       guild_id = channel.guild_id
-      return unless guild_id # this means a DM
+      return false unless guild_id # this means a DM
       guild = @client.get_guild(guild_id) # TODO resolve_guild
+
+      if guild.owner_id == user_id
+        return true
+      end
+
       member = @client.get_guild_member(guild_id, user_id) # TODO resolve_member
       guild.roles
         .select {|role| member.roles.includes?(role.id) || role.id == guild.id } # @everyone is a role with id=guild.id
