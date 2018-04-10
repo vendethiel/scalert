@@ -271,12 +271,15 @@ class ScAlert
   end
 
   def command_feature_query(payload, feature)
-    return unless mod?(payload.author.id, payload.channel_id)
     channel = payload.channel_id
+    unless mod?(payload.author.id, channel)
+      safe_create_message(channel, "Unauthorized.")
+      return
+    end
 
     hash = hash_for_feature(feature)
     unless hash
-      safe_create_message(channel, "Invalid feature, try lp/events/announcements")
+      safe_create_message(payload.channel_id, "Invalid feature, try lp/events/announcements")
       return
     end
     games = hash.fetch(channel, %w())
@@ -284,8 +287,11 @@ class ScAlert
   end
 
   def command_feature(payload, feature, bool_str, games_str)
-    return unless mod?(payload.author.id, payload.channel_id)
     channel = payload.channel_id
+    unless mod?(payload.author.id, channel)
+      safe_create_message(channel, "Unauthorized.")
+      return
+    end
 
     bool_true = %w(on yes y + 1 enable start enter add <<)
     bool_false = %w(off no n - 0 disable stop leave rm remove)
