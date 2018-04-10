@@ -271,7 +271,7 @@ class ScAlert
   end
 
   def command_feature_query(payload, feature)
-    return unless admin?(payload.author.id)
+    return unless mod?(payload.author.id, payload.channel_id)
     channel = payload.channel_id
 
     hash = hash_for_feature(feature)
@@ -284,7 +284,7 @@ class ScAlert
   end
 
   def command_feature(payload, feature, bool_str, games_str)
-    return unless admin?(payload.author.id)
+    return unless mod?(payload.author.id, payload.channel_id)
     channel = payload.channel_id
 
     bool_true = %w(on yes y + 1 enable start enter add <<)
@@ -354,8 +354,9 @@ class ScAlert
     return unless known_channel?(channel) # XXX means we can't get help for !feature, no big deal
 
     with_throttle("help/#{channel}", 20.seconds) do
-      admin_help = admin?(payload.author.id) ? "\n * `!stream <event name> <event url>` - Changes the stream URL of an event\n * `!feature [lp|events|announcements] [on|off] [#{GAMES.join(",")},...]` - Enables or disable a bot feature for some (comma-separated) game(s)" : ""
-      safe_create_message(channel, "Bot commands:\n * `!events` - Shows a list of today's events\n * `!events all` - Shows this week's events\n * `!help` - This command#{admin_help}")
+      mod_help = mod?(payload.author.id, payload.channel_id) ? "`!feature [lp|events|announcements] [on|off] [#{GAMES.join(",")},...]` - Enables or disable a bot feature for some (comma-separated) game(s)" : ""
+      admin_help = admin?(payload.author.id) ? "\n * `!stream <event name> <event url>` - Changes the stream URL of an event\n *" : ""
+      safe_create_message(channel, "Bot commands:\n * `!events` - Shows a list of today's events\n * `!events all` - Shows this week's events\n * `!help` - This command#{mod_help}#{admin_help}")
     end
   end
 
@@ -379,6 +380,19 @@ class ScAlert
         end
       end
     end
+  end
+
+  private def mod?(user_id, channel_id)
+    return true if admin?(user_id)
+    # TODO get->resolve, but needs a @client.cache (which is optional), ugly AF
+    channel = @client.get_channel(channel_id) # TODO resolve_channel
+    guild_id = channel.guild_id
+    return unless guild_id # this means a DM
+    guild = @client.get_guild(guild_id) # TODO resolve_guild
+    member = @client.get_guild_member(guild_id, user_id) # TODO resolve_member
+    guild.roles
+      .select {|role| member.roles.includes?(role.id) || role.id == guild.id } # @everyone is a role with id=guild.id
+      .any? {|role| role.permissions.manage_channels? || role.permissions.administrator? }
   end
 
   private def admin?(user_id)
