@@ -372,7 +372,8 @@ class ScAlert
         next unless events
         events_to_announce = filter_longterm(events.select{|e| games.includes?(e.game)}, longterm)
         if events_to_announce.size > 0
-          safe_create_message(channel, " ** #{label} **\n" + format_events(events_to_announce[0..max_events], show_game))
+          range = 0..max_events - 1 # -1 so that max=10 gives 10 events, not 11
+          safe_create_message(channel, " ** #{label} **\n" + format_events(events_to_announce[range], show_game))
         elsif category == "uevents"
           safe_create_message(channel, "No upcoming events for #{games.join(", ")}.")
         end
