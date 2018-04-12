@@ -466,7 +466,7 @@ class ScAlert
 
       next unless guild_id = channel_id_to_guild_id(channel_id)
       # a commands hash should never be empty (we supposedly clear the empty ones). If at some point, we change that, we can use .fetch(guild_id, {}).empty? instead
-      userdef_commands = @config.commands.has_key?(guild_id) ? "\n * Server commands: #{format_user_commands(@config.commands[guild_id])}" : ""
+      userdef_commands = @config.commands.has_key?(guild_id) ? "\n * Server commands: #{format_user_commands(@config.commands[guild_id].keys)}" : ""
 
       safe_create_message(channel_id, "Bot commands:\n * `!events` - Shows a list of today's events\n * `!events all` - Shows this week's events\n * `!help` - This command#{mod_help}#{admin_help}#{userdef_commands}")
     end
