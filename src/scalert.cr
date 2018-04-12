@@ -264,7 +264,12 @@ class ScAlert
   def run
     @client.on_message_create do |payload|
       puts "Received from #{payload.author.id}: #{payload.content}"
+      next unless payload.content == ""
+
       parts = payload.content.split(" ")
+      command = parts.pop
+      rest = parts.join(" ")
+
       if payload.content == "!events"
         command_events(payload, false)
       elsif payload.content == "!events all"
@@ -273,24 +278,26 @@ class ScAlert
         command_help(payload)
       elsif payload.content == "!exit"
         command_exit(payload)
-      elsif parts[0] == "!feature" && parts.size == 4
+      elsif command == "!feature" && parts.size == 4
         command_feature(payload, parts[1], parts[2], parts[3])
-      elsif parts[0] == "!feature" && parts.size == 2
+      elsif command == "!feature" && parts.size == 2
         command_feature_query(payload, parts[1])
-      elsif parts[0] == "!stream"
+      elsif command == "!stream"
         parts.shift # remove "!stream"
         url = parts.pop
-        command_stream(payload, parts.join(" "), url)
+        command_stream(payload, rest, url)
       elsif payload.content == "!command"
         # TODO probably list commands (like !help, but only user-def commands?)
-      elsif parts[0] == "!command" && parts.size > 1
+      elsif command == "!command" && parts.size > 1
         parts.shift # remove "!command"
-        name = parts.shift
-        command_manage_command(payload, name, parts.join(" "))
-      elsif parts[0].starts_with?("!")
+        name = parts.shift.lstrip("!") # don't define commands starting with a ! (or any number thereof)
+        command_manage_command(payload, name, rest)
+      elsif command.starts_with?("!")
         # TODO try to extract a mention, so that "!asl <!@> (`payload.parse_mentions`)
+        # See https://github.com/meew0/discordcr/pull/64
+
         name = parts.pop.lchop('!').lchop('!') # we remove ! twice, because !! is the prefix used if a guild has a command with a reserved name
-        command_exec_command(payload, name, payload.author.id)
+        command_exec_command(payload, name, payload.author.id, rest)
       end
     end
   end
@@ -310,12 +317,19 @@ class ScAlert
     end
   end
 
-  def command_exec_command(payload, command, reply_to)
+  def command_exec_command(payload, command, reply_to, rest)
     channel_id = payload.channel_id
     guild_id = channel_id_to_guild_id(channel_id)
     return unless guild_id # dm
     command_text = @config.commands.fetch(guild_id, {} of String => String).fetch(command, nil)
+
     if command_text
+      # try to find who we're replying to...
+      mentions = rest.scan(/<@!?(?<id>\d+)>/)
+      if mentions.size > 0 # use the first mention...
+        reply_to = mentions[0][0] # the first match of the first mention
+      end
+
       safe_create_message(channel_id, "<@#{reply_to}>: #{command_text}")
     else
       safe_create_message(channel_id, "<@#{reply_to}>: No such command.")
