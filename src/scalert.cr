@@ -322,15 +322,17 @@ class ScAlert
 
     command_text = @config.commands.fetch(guild_id, {} of String => String).fetch(command, nil)
     if command_text
-      # try to find who we're replying to...
-      mentions = rest.scan(/<@!?(?<id>\d+)>/)
-      reply_to = if mentions.size > 0 # use the first mention...
-                   mentions[0][1] # the first match of the first mention
-                 else
-                   payload.author.id
-                 end
+      with_throttle("guild_command/#{guild_id}/#{command}", 20.seconds) do
+        # try to find who we're replying to...
+        mentions = rest.scan(/<@!?(?<id>\d+)>/)
+        reply_to = if mentions.size > 0 # use the first mention...
+                     mentions[0][1] # the first match of the first mention
+                   else
+                     payload.author.id
+                   end
 
-      safe_create_message(channel_id, "<@#{reply_to}>: #{command_text}")
+        safe_create_message(channel_id, "<@#{reply_to}>: #{command_text}")
+      end
     else
       # While this looks like a good idea... It means cohabitation with any other bot is a nuisance. Let's not.
       #safe_create_message(channel_id, "<@#{payload.author.id}>: No such command.")
