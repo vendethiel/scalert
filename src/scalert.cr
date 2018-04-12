@@ -293,7 +293,7 @@ class ScAlert
         # TODO try to extract a mention, so that "!asl <!@> (`payload.parse_mentions`)
         # See https://github.com/meew0/discordcr/pull/64
 
-        name = parts.pop.lchop('!').lchop('!') # we remove ! twice, because !! is the prefix used if a guild has a command with a reserved name
+        name = parts.shift.lchop('!').lchop('!') # we remove ! twice, because !! is the prefix used if a guild has a command with a reserved name
         command_exec_command(payload, name, parts.join(" "))
       end
     end
