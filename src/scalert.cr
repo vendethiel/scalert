@@ -294,7 +294,7 @@ class ScAlert
         # See https://github.com/meew0/discordcr/pull/64
 
         name = parts.pop.lchop('!').lchop('!') # we remove ! twice, because !! is the prefix used if a guild has a command with a reserved name
-        command_exec_command(payload, name, payload.author.id, parts.join(" "))
+        command_exec_command(payload, name, parts.join(" "))
       end
     end
   end
@@ -314,7 +314,7 @@ class ScAlert
     end
   end
 
-  def command_exec_command(payload, command, reply_to, rest)
+  def command_exec_command(payload, command, rest)
     channel_id = payload.channel_id
     guild_id = channel_id_to_guild_id(channel_id)
     return unless guild_id # dm
@@ -323,9 +323,11 @@ class ScAlert
     if command_text
       # try to find who we're replying to...
       mentions = rest.scan(/<@!?(?<id>\d+)>/)
-      if mentions.size > 0 # use the first mention...
-        reply_to = mentions[0][0] # the first match of the first mention
-      end
+      reply_to = if mentions.size > 0 # use the first mention...
+                   mentions[0][0] # the first match of the first mention
+                 else
+                   payload.author.id
+                 end
 
       safe_create_message(channel_id, "<@#{reply_to}>: #{command_text}")
     else
