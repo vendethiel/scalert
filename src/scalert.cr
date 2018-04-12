@@ -102,6 +102,28 @@ module GameHashConverter
   end
 end
 
+module CommandConverter
+  def self.to_json(value : Hash(UInt64, Hash(String, String)), json : JSON::Builder)
+    json.object do
+      value.each do |k, v|
+        json.field k, v
+      end
+    end
+  end
+
+  def self.from_json(json : JSON::PullParser)
+    hash = {} of UInt64 => Hash(String, String)
+    json.read_object do |key|
+      commands = {} of String => String
+      json.read_object do |command|
+        commands[command] = json.read_string
+      end
+      hash[key.to_u64] = commands
+    end
+    hash
+  end
+end
+
 class ScConfig
   setter filename : String | Nil
   def save!
@@ -117,6 +139,7 @@ class ScConfig
     announcements: {type: Hash(UInt64, Array(String)), converter: GameHashConverter},
     events_command: {type: Hash(UInt64, Array(String)), converter: GameHashConverter},
     lp_event_channels: {type: Hash(UInt64, Array(String)), converter: GameHashConverter},
+    commands: {type: Hash(UInt64, Hash(String, String)), converter: CommandConverter},
     admins: Array(UInt64)
   )
 end
@@ -258,16 +281,81 @@ class ScAlert
         parts.shift # remove "!stream"
         url = parts.pop
         command_stream(payload, parts.join(" "), url)
+      elsif parts[0] == "!command"
+        parts.shift # remove "!command"
+        name = parts.shift
+        command_manage_command(payload, name, parts.join(" "))
+      elsif parts[0].starts_with?("!")
+        # TODO try to extract a mention, so that "!asl <!@> (`payload.parse_mentions`)
+        name = parts.pop.lchop('!').lchop('!') # we remove ! twice, because !! is the prefix used if a guild has a command with a reserved name
+        command_exec_command(payload, name, payload.author.id)
       end
     end
   end
 
-  def with_throttle(key, delay, &block)
+  COMMANDS = %w(events help exit feature stream command)
+
+  private def channel_id_to_guild_id(channel_id)
+    channel = @client.get_channel(channel_id) # TODO resolve_channel
+    channel.guild_id
+  end
+
+  private def with_throttle(key, delay, &block)
     now = Time.new
     if !@timers.has_key?(key) || @timers[key] + delay < now
       block.call
       @timers[key] = now
     end
+  end
+
+  def command_exec_command(payload, command, reply_to)
+    channel_id = payload.channel_id
+    guild_id = channel_id_to_guild_id(channel_id)
+    return unless guild_id # dm
+    command_text = @config.commands.fetch(guild_id, {} of String => String).fetch(command, nil)
+    if command_text
+      safe_create_message(channel_id, "<!#{reply_to}>: #{command_text}")
+    else
+      safe_create_message(channel_id, "<!#{reply_to}>: No such command.")
+    end
+  end
+
+  def command_manage_command(payload, name, text)
+    channel_id = payload.channel_id
+    unless mod?(payload.author.id, channel_id)
+      safe_create_message(channel_id, "Unauthorized.")
+      return
+    end
+    return unless guild_id = channel_id_to_guild_id(channel_id) # dm
+    has_commands = @config.commands.has_key?(guild_id)
+    command_exists = has_commands && @config.commands[guild_id].has_key?(name)
+
+    if text == ""
+      # remove command
+      if command_exists
+        @config.commands[guild_id].delete(name)
+
+        if @config.commands[guild_id].empty?
+          @config.commands.delete(guild_id)
+        end
+        safe_create_message(channel_id, "Command removed.")
+      else
+        safe_create_message(channel_id, "No such command.")
+      end
+    elsif text.includes?("@everyone") || text.includes?("@here")
+      # Let's prevent commands that try to ping everyone/here...
+      safe_create_message(channel_id, "Invalid text.")
+      return # no need to save config
+    else
+      @config.commands[guild_id] = {} of String => String unless has_commands # init hash if necessary
+      @config.commands[guild_id][name] = text
+      if command_exists
+        safe_create_message(channel_id, "Command replaced.")
+      else
+        safe_create_message(channel_id, "Command added.")
+      end
+    end
+    @config.save!
   end
 
   def command_feature_query(payload, feature)
@@ -367,14 +455,24 @@ class ScAlert
   end
 
   def command_help(payload)
-    channel = payload.channel_id
-    return unless known_channel?(channel) # XXX means we can't get help for !feature, no big deal
+    channel_id = payload.channel_id
+    return unless known_channel?(channel_id) # XXX means we can't get help for !feature, no big deal
 
-    with_throttle("help/#{channel}", 20.seconds) do
-      mod_help = mod?(payload.author.id, payload.channel_id) ? "\n * `!feature [lp|events|announcements] [on|off] [#{GAMES.join(",")},...]` - Enables or disable a bot feature for some (comma-separated) game(s)" : ""
+    with_throttle("help/#{channel_id}", 20.seconds) do
+      mod_help = mod?(payload.author.id, channel_id) ? "\n * `!feature [lp|events|announcements] [on|off] [#{GAMES.join(",")},...]` - Enables or disable a bot feature for some (comma-separated) game(s)" : ""
       admin_help = admin?(payload.author.id) ? "\n * `!stream <event name> <event url>` - Changes the stream URL of an event\n *" : ""
-      safe_create_message(channel, "Bot commands:\n * `!events` - Shows a list of today's events\n * `!events all` - Shows this week's events\n * `!help` - This command#{mod_help}#{admin_help}")
+
+      next unless guild_id = channel_id_to_guild_id(channel_id)
+      # a commands hash should never be empty (we supposedly clear the empty ones). If at some point, we change that, we can use .fetch(guild_id, {}).empty? instead
+      userdef_commands = @config.commands.has_key?(guild_id) ? "\n * Server commands: #{format_user_commands(@config.commands[guild_id])}" : ""
+
+      safe_create_message(channel_id, "Bot commands:\n * `!events` - Shows a list of today's events\n * `!events all` - Shows this week's events\n * `!help` - This command#{mod_help}#{admin_help}#{userdef_commands}")
     end
+  end
+
+  # Formats user commands (per-server commands). Prints "!cmd" if the name isn't reserved, "!!cmd" if it is.
+  private def format_user_commands(commands)
+    commands.map {|command| COMMANDS.includes?(command) ? "!!#{command}" : "!#{command}" }.join(", ")
   end
 
   def command_events(payload, longterm)
@@ -402,12 +500,10 @@ class ScAlert
   private def mod?(user_id, channel_id)
     return true if admin?(user_id)
     begin
-      # TODO get->resolve, but needs a @client.cache (which is optional), ugly AF
-      channel = @client.get_channel(channel_id) # TODO resolve_channel
-      guild_id = channel.guild_id
-      return false unless guild_id # this means a DM
+      return false unless guild_id = channel_id_to_guild_id(channel_id) # dm
       guild = @client.get_guild(guild_id) # TODO resolve_guild
 
+      # A server owner is always an admin, even without a role with associated permissions.
       if guild.owner_id == user_id
         return true
       end
