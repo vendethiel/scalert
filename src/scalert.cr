@@ -332,7 +332,8 @@ class ScAlert
 
       safe_create_message(channel_id, "<@#{reply_to}>: #{command_text}")
     else
-      safe_create_message(channel_id, "<@#{payload.author.id}>: No such command.")
+      # While this looks like a good idea... It means cohabitation with any other bot is a nuisance. Let's not.
+      #safe_create_message(channel_id, "<@#{payload.author.id}>: No such command.")
     end
   end
 
