@@ -462,7 +462,7 @@ class ScAlert
 
     with_throttle("help/#{channel_id}", 20.seconds) do
       mod_help = mod?(payload.author.id, channel_id) ? "\n * `!feature [lp|events|announcements] [on|off] [#{GAMES.join(",")},...]` - Enables or disable a bot feature for some (comma-separated) game(s)\n * `!command <command name> <command text>...` – Add a command with given text" : ""
-      admin_help = admin?(payload.author.id) ? "\n * `!stream <event name>... <event url>` - Changes the stream URL of an event\n *" : ""
+      admin_help = admin?(payload.author.id) ? "\n * `!stream <event name>... <event url>` - Changes the stream URL of an event" : ""
 
       return unless guild_id = channel_id_to_guild_id(channel_id)
       # a commands hash should never be empty (we supposedly clear the empty ones). If at some point, we change that, we can use .fetch(guild_id, {}).empty? instead
