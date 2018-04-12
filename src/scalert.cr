@@ -264,7 +264,7 @@ class ScAlert
   def run
     @client.on_message_create do |payload|
       puts "Received from #{payload.author.id}: #{payload.content}"
-      next unless payload.content == ""
+      next if payload.content == ""
 
       parts = payload.content.split(" ")
       if payload.content == "!events"
