@@ -344,9 +344,9 @@ class ScAlert
       else
         safe_create_message(channel_id, "No such command.")
       end
-    elsif text.includes?("@everyone") || text.includes?("@here")
+    elsif text.includes?("@everyone") || text.includes?("@here") || name.includes?("`") || name.includes("@")
       # Let's prevent commands that try to ping everyone/here...
-      safe_create_message(channel_id, "Invalid text.")
+      safe_create_message(channel_id, "Invalid name/text.")
       return # no need to save config
     else
       @config.commands[guild_id] = {} of String => String unless has_commands # init hash if necessary
@@ -474,7 +474,9 @@ class ScAlert
 
   # Formats user commands (per-server commands). Prints "!cmd" if the name isn't reserved, "!!cmd" if it is.
   private def format_user_commands(commands)
-    commands.map {|command| COMMANDS.includes?(command) ? "!!#{command}" : "!#{command}" }.join(", ")
+    commands
+      .map {|command| COMMANDS.includes?(command) ? "`!!#{command}`" : "`!#{command}`" }
+      .join(", ")
   end
 
   def command_events(payload, longterm)
