@@ -331,7 +331,7 @@ class ScAlert
 
       safe_create_message(channel_id, "<@#{reply_to}>: #{command_text}")
     else
-      safe_create_message(channel_id, "<@#{reply_to}>: No such command.")
+      safe_create_message(channel_id, "<@#{payload.author.id}>: No such command.")
     end
   end
 
