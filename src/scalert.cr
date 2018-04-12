@@ -281,7 +281,9 @@ class ScAlert
         parts.shift # remove "!stream"
         url = parts.pop
         command_stream(payload, parts.join(" "), url)
-      elsif parts[0] == "!command"
+      elsif payload.content == "!command"
+        # TODO probably list commands (like !help, but only user-def commands?)
+      elsif parts[0] == "!command" && parts.size > 1
         parts.shift # remove "!command"
         name = parts.shift
         command_manage_command(payload, name, parts.join(" "))
@@ -314,9 +316,9 @@ class ScAlert
     return unless guild_id # dm
     command_text = @config.commands.fetch(guild_id, {} of String => String).fetch(command, nil)
     if command_text
-      safe_create_message(channel_id, "<!#{reply_to}>: #{command_text}")
+      safe_create_message(channel_id, "<@#{reply_to}>: #{command_text}")
     else
-      safe_create_message(channel_id, "<!#{reply_to}>: No such command.")
+      safe_create_message(channel_id, "<@#{reply_to}>: No such command.")
     end
   end
 
@@ -459,10 +461,10 @@ class ScAlert
     return unless known_channel?(channel_id) # XXX means we can't get help for !feature, no big deal
 
     with_throttle("help/#{channel_id}", 20.seconds) do
-      mod_help = mod?(payload.author.id, channel_id) ? "\n * `!feature [lp|events|announcements] [on|off] [#{GAMES.join(",")},...]` - Enables or disable a bot feature for some (comma-separated) game(s)" : ""
-      admin_help = admin?(payload.author.id) ? "\n * `!stream <event name> <event url>` - Changes the stream URL of an event\n *" : ""
+      mod_help = mod?(payload.author.id, channel_id) ? "\n * `!feature [lp|events|announcements] [on|off] [#{GAMES.join(",")},...]` - Enables or disable a bot feature for some (comma-separated) game(s)\n * `!command <command name> <command text>...` – Add a command with given text" : ""
+      admin_help = admin?(payload.author.id) ? "\n * `!stream <event name>... <event url>` - Changes the stream URL of an event\n *" : ""
 
-      next unless guild_id = channel_id_to_guild_id(channel_id)
+      return unless guild_id = channel_id_to_guild_id(channel_id)
       # a commands hash should never be empty (we supposedly clear the empty ones). If at some point, we change that, we can use .fetch(guild_id, {}).empty? instead
       userdef_commands = @config.commands.has_key?(guild_id) ? "\n * Server commands: #{format_user_commands(@config.commands[guild_id])}" : ""
 
