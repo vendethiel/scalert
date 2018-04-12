@@ -324,7 +324,7 @@ class ScAlert
       # try to find who we're replying to...
       mentions = rest.scan(/<@!?(?<id>\d+)>/)
       reply_to = if mentions.size > 0 # use the first mention...
-                   mentions[0][0] # the first match of the first mention
+                   mentions[0][1] # the first match of the first mention
                  else
                    payload.author.id
                  end
