@@ -294,7 +294,7 @@ class ScAlert
         # See https://github.com/meew0/discordcr/pull/64
 
         name = parts.shift.lchop('!').lchop('!') # we remove ! twice, because !! is the prefix used if a guild has a command with a reserved name
-        return if name.lstrip('!') == "" # no command, just someone too excited
+        next if name.lstrip('!') == "" # no command, just someone too excited
         command_exec_command(payload, name, parts.join(" "))
       end
     end
