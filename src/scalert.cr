@@ -464,7 +464,7 @@ class ScAlert
       mod_help = mod?(payload.author.id, channel_id) ? "\n * `!feature [lp|events|announcements] [on|off] [#{GAMES.join(",")},...]` - Enables or disable a bot feature for some (comma-separated) game(s)\n * `!command <command name> <command text>...` – Add a command with given text" : ""
       admin_help = admin?(payload.author.id) ? "\n * `!stream <event name>... <event url>` - Changes the stream URL of an event" : ""
 
-      return unless guild_id = channel_id_to_guild_id(channel_id)
+      next unless guild_id = channel_id_to_guild_id(channel_id)
       # a commands hash should never be empty (we supposedly clear the empty ones). If at some point, we change that, we can use .fetch(guild_id, {}).empty? instead
       userdef_commands = @config.commands.has_key?(guild_id) ? "\n * Server commands: #{format_user_commands(@config.commands[guild_id])}" : ""
 
