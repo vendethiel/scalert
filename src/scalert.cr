@@ -344,7 +344,7 @@ class ScAlert
       else
         safe_create_message(channel_id, "No such command.")
       end
-    elsif text.includes?("@everyone") || text.includes?("@here") || name.includes?("`") || name.includes("@")
+    elsif text.includes?("@everyone") || text.includes?("@here") || name.includes?("`") || name.includes?("@")
       # Let's prevent commands that try to ping everyone/here...
       safe_create_message(channel_id, "Invalid name/text.")
       return # no need to save config
