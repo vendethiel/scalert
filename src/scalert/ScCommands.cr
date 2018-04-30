@@ -102,7 +102,16 @@ class ScCommands
       return
     end
 
+    unless config.filter_mode.has_key?(guild_id)
+      safe_create_message(channel_id, "Configure filter via `!filter mode` first.")
+      return
+    end
+
+    unless config.filter_list.has_key?(guild_id)
+      config.filter_list[guild_id] = %w()
+    end
     hash = config.filter_list[guild_id]
+
     if BOOL_TRUE.includes?(bool_str)
       if hash.includes?(name)
         safe_create_message(channel_id, "Value is already in the list.")
