@@ -73,16 +73,16 @@ class ScCommands
     end
 
     if %w(allow accept).includes?(mode)
-      safe_create_message(channel_id, "Filter now in accept-list mode")
+      safe_create_message(channel_id, "Filter now in accept-list mode.")
       config.filter_mode[guild_id] = true
     elsif %w(deny block).includes?(mode)
-      safe_create_message(channel_id, "Filter now in deny-list mode")
+      safe_create_message(channel_id, "Filter now in deny-list mode.")
       config.filter_mode[guild_id] = false
     elsif BOOL_FALSE.includes?(mode)
       safe_create_message(channel_id, "Disabled filtering")
       config.filter_list.delete(guild_id) # disable filter
     else
-      safe_create_message(channel_id, "Invalid value, allowed: allow/deny/off")
+      safe_create_message(channel_id, "Invalid value, allowed: allow/deny/off.")
       return
     end
 

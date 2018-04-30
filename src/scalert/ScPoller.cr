@@ -12,7 +12,7 @@ class ScPoller
     guild_id = @bot.channel_id_to_guild_id(channel_id)
 
     events_for_games = events.select{|e| games.includes?(e.game)}
-    events_filtered = @bot.filter_events(events, guild_id)
+    events_filtered = @bot.filter_events(events_for_games, guild_id)
     events_filtered
   end
 
