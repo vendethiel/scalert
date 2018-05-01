@@ -70,7 +70,7 @@ class ScBot
   # filter events based on black/white lists
   def filter_events(events, guild_id)
     return events unless @config.filter_mode.has_key?(guild_id)
-    return events unless @config.filter_list.has_key?(guild_id) # should not happen
+    return events unless @config.filter_list.has_key?(guild_id)
     list = @config.filter_list[guild_id]
     # allow
     if @config.filter_mode[guild_id]
