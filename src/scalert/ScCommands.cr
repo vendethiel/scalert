@@ -293,7 +293,6 @@ class ScCommands
 
   def command_help(payload)
     channel_id = payload.channel_id
-    return unless known_channel?(channel_id) # XXX means we can't get help for !feature, no big deal
 
     @bot.with_throttle("help/#{channel_id}", 20.seconds) do
       mod_help = mod?(payload.author.id, channel_id) ? "\n * `!feature [lp|events|announcements] [on|off] [#{GAMES.join(",")},...]` - Enables or disable a bot feature for some (comma-separated) game(s)\n * `!command <command name> <command text>...` – Add a command with given text\n * `!filter mode [off|allow|deny]` - Sets the filter list to allow/deny or disables it.\n * `!filter [add|remove] <event name>...` - Adds or removes the event from the filter list." : ""
