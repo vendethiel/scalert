@@ -76,7 +76,7 @@ class ScCommands
 
     has_mode = config.filter_mode.has_key?(guild_id)
     has_list = config.filter_list.has_key?(guild_id)
-    entries = has_list ? 0 : config.filter_list[guild_id].size
+    entries = has_list ? config.filter_list[guild_id].size : 0
     entries_str = "#{entries} #{entries == 1 ? "entry" : "entries"}"
     if has_mode && config.filter_mode[guild_id]
       if entries == 0
