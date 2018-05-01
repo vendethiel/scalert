@@ -37,6 +37,8 @@ class ScCommands
         url = parts.pop
         command_stream(payload, parts.join(" "), url)
 
+      elsif parts[0] == "!fiter" && parts.size == 2 && parts[1] == "mode"
+        command_filter_mode_query(payload)
       elsif parts[0] == "!filter" && parts.size == 3 && parts[1] == "mode"
         command_filter_mode(payload, parts[2])
       elsif parts[0] == "!filter" && parts.size > 2
@@ -58,6 +60,37 @@ class ScCommands
         name = parts.shift.lchop('!').lchop('!') # we remove ! twice, because !! is the prefix used if a guild has a command with a reserved name
         next if name.lstrip('!') == "" # no command, just someone too excited
         command_exec_command(payload, name, parts.join(" "))
+      end
+    end
+  end
+
+  def command_filter_mode_query(payload)
+    channel_id = payload.channel_id
+    guild_id = channel_id_to_guild_id(channel_id)
+    return unless guild_id # dm
+
+    unless mod?(payload.author.id, channel_id)
+      safe_create_message(channel_id, "Unauthorized.")
+      return
+    end
+
+    has_mode = config.filter_mode.has_key?(guild_id)
+    has_list = config.filter_list.has_key?(guild_id)
+    entries = has_list ? 0 : config.filter_list[guild_id].size
+    entries_str = "#{entries} #{entries == 1 ? "entry" : "entries"}"
+    if has_mode && config.filter_mode[guild_id]
+      if entries == 0
+        safe_create_message(channel_id, "*Warning*! Filtering in allow-only mode, but the list is empty. This means no events will be listed/announced.")
+      else
+        safe_create_message(channel_id, "Filtering in allow-only mode, with #{entries_str}.")
+      end
+    elsif has_mode
+      safe_create_message(channel_id, "Filtering in block-only mode, with #{entries_str}.")
+    else
+      if entries == 0
+        safe_create_message(channel_id, "Filtering disabled.")
+      else
+        safe_create_message(channel_id, "Filtering disabled, so allow events will be listed/announced, but the list has #{entries_str}.")
       end
     end
   end
