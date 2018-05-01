@@ -37,7 +37,7 @@ class ScCommands
         url = parts.pop
         command_stream(payload, parts.join(" "), url)
 
-      elsif parts[0] == "!fiter" && parts.size == 2 && parts[1] == "mode"
+      elsif parts[0] == "!filter" && parts.size == 2 && parts[1] == "mode"
         command_filter_mode_query(payload)
       elsif parts[0] == "!filter" && parts.size == 3 && parts[1] == "mode"
         command_filter_mode(payload, parts[2])
