@@ -378,6 +378,8 @@ class ScCommands
         found_fuzzy = true
       end
     end
+
+    has_live_events = live_events_filtered.size > 0
     # now process live events
     if live_events_filtered.size > 0
       live_event = live_events_filtered[0]
@@ -412,7 +414,11 @@ class ScCommands
       event = up_events_filtered[0]
       message_parts << "Upcoming: #{event.name}#{event.show_game(show_game)} in #{event.timer}."
     else
-      message_parts << "No such event upcoming."
+      if has_live_events
+        message_parts << "No other event planned afterwards this week."
+      else
+        message_parts << "No such event upcoming this week."
+      end
     end
 
     safe_create_message(payload.channel_id, message_parts.join("\n"))
