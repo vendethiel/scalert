@@ -408,9 +408,10 @@ class ScCommands
         message_parts << "Upcoming: #{event1.name}#{event1.show_game(show_game)} in #{event1.timer}, then #{event2.name} in #{event2.timer}."
       end
     elsif up_events_filtered.size == 1
-      message_parts << "Upcoming:#{up_events_filtered[0].to_s(show_game)}"
+      event = up_events_filtered[0]
+      message_parts << "Upcoming: #{event.name}#{event.show_game(show_game)} in #{event.timer}."
     else
-      message_parts << "No such event upcoming"
+      message_parts << "No such event upcoming."
     end
 
     safe_create_message(payload.channel_id, message_parts.join("\n"))
