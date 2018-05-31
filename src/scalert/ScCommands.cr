@@ -20,6 +20,9 @@ class ScCommands
         command_events(payload, false)
       elsif payload.content == "!events all"
         command_events(payload, true)
+      elsif parts[0] == "!event" && parts.size > 1
+        parts.shift
+        command_event_next(payload, parts.join(" "))
 
       elsif payload.content == "!help"
         command_help(payload)
@@ -335,7 +338,7 @@ class ScCommands
       # a commands hash should never be empty (we supposedly clear the empty ones). If at some point, we change that, we can use .fetch(guild_id, {}).empty? instead
       userdef_commands = config.commands.has_key?(guild_id) ? "\n * Server commands: #{format_user_commands(config.commands[guild_id].keys)}" : ""
 
-      safe_create_message(channel_id, "Bot commands:\n * `!events` - Shows a list of today's events\n * `!events all` - Shows this week's events\n * `!help` - This command#{mod_help}#{admin_help}#{userdef_commands}")
+      safe_create_message(channel_id, "Bot commands:\n * `!events` - Shows a list of today's events\n * `!events all` - Shows this week's events\n * `!event <event name>...` - Timers for a specific event\n * `!help` - This command#{mod_help}#{admin_help}#{userdef_commands}")
     end
   end
 
@@ -344,6 +347,73 @@ class ScCommands
     commands
       .map {|command| COMMANDS.includes?(command) ? "`!!#{command}`" : "`!#{command}`" }
       .join(", ")
+  end
+
+  def command_event_next(payload, event_name)
+    #TODO enable this?
+    #return unless events_command.has_key?(payload.channel_id)
+    #TODO with_throttle?
+    channel_id = payload.channel_id
+    guild_id = channel_id_to_guild_id(channel_id)
+
+    games = events_command[channel_id]
+    show_game = games.size > 1 # plural yada yada
+    live_events = api.run_category("levents").try{|ev| ev.select{|e| games.includes?(e.game)}}
+    return unless live_events
+    up_events = api.run_category("uevents").try{|ev| ev.select{|e| games.includes?(e.game)}}
+    return unless up_events
+
+    found_fuzzy = false
+    message_parts = [] of String
+
+    # the event might be currently live
+    live_events_filtered = live_events.select{|e| e.name == event_name }
+    if live_events_filtered.size == 0
+      # no exact match, let's try fuzzy matching
+      live_events_filtered = live_events.select{|e| e.name.starts_with?(event_name) }
+      if live_events_filtered.size > 0
+        # we got a fuzzy match. Mark it as fuzzy, so that upcoming knows to force fuzzy.
+        # this is to prevent i.e. LIVE to use a partial match, and then UPCOMING to find a different event via perfect match
+        found_fuzzy = true
+      end
+    end
+    # now process live events
+    if live_events_filtered.size > 0
+      live_event = live_events_filtered[0]
+      message_parts << "Currently live: #{live_event.to_s(show_game)}"
+    end
+
+    # the event might be upcoming
+    live_perfect_matches = up_events.select{|e| e.name == event_name }
+    live_fuzzy_matches = up_events.select{|e| e.name.starts_with?(event_name) }
+    # if we know we found a fuzzy match for LIVE, force fuzzy
+    up_events_filtered = found_fuzzy || live_perfect_matches.size == 0 ? live_fuzzy_matches : live_perfect_matches
+
+    # we found 2+ matches, make sure they're from the same game
+    # this might bring us back to a single event only.
+    if up_events_filtered.size >= 2
+      up_events_filtered = up_events_filtered.select{|e| e.game == up_events_filtered[0].game }
+    end
+
+    # now process
+    if up_events_filtered.size >= 2
+      event1 = up_events_filtered[0]
+      event2 = up_events_filtered[1]
+      if event1.name == event2.name
+        # two instances of the same event
+        # force show_game to false, don't repeat game name
+        message_parts << "Upcoming: #{event1.name}#{event1.show_game(show_game)} in #{event1.timer}, then #{event2.timer}."
+      else
+        # different events, fuzzy matched
+        message_parts << "Upcoming: #{event1.name}#{event1.show_game(show_game)} in #{event1.timer}, then #{event2.name} in #{event2.timer}."
+      end
+    elsif up_events_filtered.size == 1
+      message_parts << "Upcoming:#{up_events_filtered[0].to_s(show_game)}"
+    else
+      message_parts << "No such event upcoming"
+    end
+
+    safe_create_message(payload.channel_id, message_parts.join("\n"))
   end
 
   def command_events(payload, longterm)

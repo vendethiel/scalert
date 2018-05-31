@@ -16,8 +16,12 @@ class ScEvent
     end
   end
 
+  def show_game(include_game = false)
+    include_game ? " (#{@game})" : ""
+  end
+
   def to_s(include_game = false)
-    " * #{name}#{include_game ? " (#{@game})" : ""} #{desc}"
+    " * #{name}#{show_game(include_game)} #{desc}"
   end
 
   def desc
