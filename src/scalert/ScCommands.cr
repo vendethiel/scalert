@@ -383,7 +383,7 @@ class ScCommands
     # now process live events
     if live_events_filtered.size > 0
       live_event = live_events_filtered[0]
-      message_parts << "Currently live: #{live_event.name}#{live_event.show_game(show_game)}#{live_event.desc}"
+      message_parts << "Currently live: #{live_event.name}#{live_event.show_game(show_game)} #{live_event.desc}"
     end
 
     # the event might be upcoming
