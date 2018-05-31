@@ -424,6 +424,11 @@ class ScCommands
     safe_create_message(payload.channel_id, message_parts.join("\n"))
   end
 
+  private def events_display(channel_id, label, events, show_game)
+    range = 0..max_events - 1 # -1 so that max=10 gives 10 events, not 11
+    safe_create_message(channel_id, " ** #{label} **\n" + @bot.format_events(events_to_announce[range], show_game))
+  end
+
   def command_events(payload, longterm)
     return unless events_command.has_key?(payload.channel_id)
     channel_id = payload.channel_id
@@ -439,16 +444,16 @@ class ScCommands
         events_for_game = events.select{|e| games.includes?(e.game)}
         events_filtered = @bot.filter_events(events_for_game, guild_id)
         events_filtered_longterm = filter_longterm(events_filtered, longterm)
-        events_to_announce = events_filtered_longterm
 
         if events_to_announce.size > 0
-          range = 0..max_events - 1 # -1 so that max=10 gives 10 events, not 11
-          safe_create_message(channel_id, " ** #{label} **\n" + @bot.format_events(events_to_announce[range], show_game))
+          events_display(channel_id, label, events_filtered_longterm, show_game)
         elsif category == "uevents"
-          if events_filtered.size > 0 && longterm # "&& longterm" should be implied anyway
-            safe_create_message(channel_id, "No upcoming events for #{games.join(", ")}, but there are events coming later. Try `!events all`.")
+          if events_filtered.size > 0 # we're in !longterm, but there are longterm events
+            events_display(channel_id, label, events_filtered, show_game)
+          elsif longterm
+            safe_create_message(channel_id, "No upcoming events for #{games.join(", ")} this week")
           else
-            safe_create_message(channel_id, "No upcoming events for #{games.join(", ")}.")
+            safe_create_message(channel_id, "No upcoming events for #{games.join(", ")} today.")
           end
         end
       end
