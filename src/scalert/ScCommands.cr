@@ -436,10 +436,12 @@ class ScCommands
         if events_to_announce.size > 0
           range = 0..max_events - 1 # -1 so that max=10 gives 10 events, not 11
           safe_create_message(channel_id, " ** #{label} **\n" + @bot.format_events(events_to_announce[range], show_game))
-        elsif category == "uevents" && events_filtered.size > 0 && longterm # "&& longterm" should be implied anyway
-          safe_create_message(channel_id, "No upcoming events for #{games.join(", ")}, but there are events coming later. Try `!events all`.")
-        else
-          safe_create_message(channel_id, "No upcoming events for #{games.join(", ")}.")
+        elsif category == "uevents"
+          if events_filtered.size > 0 && longterm # "&& longterm" should be implied anyway
+            safe_create_message(channel_id, "No upcoming events for #{games.join(", ")}, but there are events coming later. Try `!events all`.")
+          else
+            safe_create_message(channel_id, "No upcoming events for #{games.join(", ")}.")
+          end
         end
       end
     end
