@@ -359,13 +359,16 @@ class ScCommands
         next unless events
 
         events_for_game = events.select{|e| games.includes?(e.game)}
-        events_filtered_longterm = filter_longterm(events_for_game, longterm)
-        events_to_announce = @bot.filter_events(events_filtered_longterm, guild_id)
+        events_filtered = @bot.filter_events(events_for_game, guild_id)
+        events_filtered_longterm = filter_longterm(events_filtered, longterm)
+        events_to_announce = events_filtered_longterm
 
         if events_to_announce.size > 0
           range = 0..max_events - 1 # -1 so that max=10 gives 10 events, not 11
           safe_create_message(channel_id, " ** #{label} **\n" + @bot.format_events(events_to_announce[range], show_game))
-        elsif category == "uevents"
+        elsif category == "uevents" && events_filtered.size > 0 && longterm # "&& longterm" should be implied anyway
+          safe_create_message(channel_id, "No upcoming events for #{games.join(", ")}, but there are events coming later. Try `!events all`.")
+        else
           safe_create_message(channel_id, "No upcoming events for #{games.join(", ")}.")
         end
       end
