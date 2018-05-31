@@ -350,11 +350,12 @@ class ScCommands
   end
 
   def command_event_next(payload, event_name)
-    #TODO enable this?
-    #return unless events_command.has_key?(payload.channel_id)
-    #TODO with_throttle?
     channel_id = payload.channel_id
     guild_id = channel_id_to_guild_id(channel_id)
+    #TODO with_throttle?
+
+    # need !events to be enabled, so we can find which games to show
+    return unless events_command.has_key?(payload.channel_id)
 
     games = events_command[channel_id]
     show_game = games.size > 1 # plural yada yada
