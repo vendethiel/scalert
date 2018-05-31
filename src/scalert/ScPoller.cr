@@ -72,7 +72,7 @@ class ScPoller
           events_to_announce = poll_filter_events(events_soon, games, channel_id)
           events_to_announce.each do |e|
             details = api.fetch_details(e.id)
-            extra = [e.timer.try{|t| "(#{t})"}]
+            extra = []
             begin
               if details
                 extra << details["subtext"].as_s?
