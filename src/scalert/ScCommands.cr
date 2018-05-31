@@ -426,7 +426,7 @@ class ScCommands
 
   private def events_display(channel_id, label, events, show_game)
     range = 0..max_events - 1 # -1 so that max=10 gives 10 events, not 11
-    safe_create_message(channel_id, " ** #{label} **\n" + @bot.format_events(events_to_announce[range], show_game))
+    safe_create_message(channel_id, " ** #{label} **\n" + @bot.format_events(events[range], show_game))
   end
 
   def command_events(payload, longterm)
@@ -445,7 +445,7 @@ class ScCommands
         events_filtered = @bot.filter_events(events_for_game, guild_id)
         events_filtered_longterm = filter_longterm(events_filtered, longterm)
 
-        if events_to_announce.size > 0
+        if events_filtered_longterm.size > 0
           events_display(channel_id, label, events_filtered_longterm, show_game)
         elsif category == "uevents"
           if events_filtered.size > 0 # we're in !longterm, but there are longterm events
