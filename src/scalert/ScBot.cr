@@ -22,8 +22,8 @@ class ScBot
   def with_throttle(key, delay, &block)
     now = Time.new
     if !@timers.has_key?(key) || @timers[key] + delay < now
-      block.call
       @timers[key] = now
+      block.call
     end
   end
 
