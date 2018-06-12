@@ -10,8 +10,15 @@ class ScBot
     @timers = {} of String => Time
   end
 
-  def format_events(events, show_game)
-    events.map{|e| e.to_s(show_game)}.join("\n")
+  # resolves a channel and an event name to the channel's guild stream url for that name
+  private def channel_stream_url(channel_id, event_name)
+    return nil unless channel_id # accept nil
+    @stream_urls.fetch("#{channel_id_to_guild_id(channel_id)}:#{event_name}", nil)
+  end
+
+  # format events for display. if a channel_id is included, tries to use per-guild event URL
+  def format_events(events, show_game, channel_id = nil)
+    events.map{|e| e.to_s(show_game, channel_stream_url(channel_id, e.name))}.join("\n")
   end
 
   def channel_id_to_guild_id(channel_id)

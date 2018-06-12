@@ -46,7 +46,7 @@ class ScPoller
           next unless events_to_announce.size > 0
 
           show_game = games.size > 1 # show the game if there could be confusion
-          safe_create_message(channel_id, " ** LIVE **\n" + @bot.format_events(events_to_announce, show_game))
+          safe_create_message(channel_id, " ** LIVE **\n" + @bot.format_events(events_to_announce, show_game, channel_id))
         end
       rescue ex
         puts "Rescued live events poller exception\n#{ex.inspect_with_backtrace}"

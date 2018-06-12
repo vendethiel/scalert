@@ -318,13 +318,19 @@ class ScCommands
   end
 
   def command_stream(payload, name, url)
-    unless admin?(payload.author.id)
+    channel_id = payload.channel_id
+    unless mod?(payload.author.id, channel_id)
       puts("Unauthorized command from #{payload.author.id}")
       return
     end
+
     clean_url = url.lchop('<').rchop('>')
-    stream_urls[name] = clean_url
-    safe_create_message(payload.channel_id, "Stream url of **#{name}** set to <#{clean_url}>")
+    is_admin = admin?(payload.author.id)
+    # if we're just a mod and not an admin, the stream url is overriden per-guild only
+    saved_name = is_admin ? name : "#{@bot.channel_id_to_guild_id(channel_id)}:#{name}"
+
+    stream_urls[saved_name] = clean_url
+    safe_create_message(channel_id, "Stream url of **#{name}**#{is_admin || " for this server"} set to <#{clean_url}>")
   end
 
   def command_help(payload)
@@ -425,8 +431,6 @@ class ScCommands
   end
 
   private def events_display(channel_id, label, events, show_game)
-    range = 0..max_events - 1 # -1 so that max=10 gives 10 events, not 11
-    safe_create_message(channel_id, " ** #{label} **\n" + @bot.format_events(events[range], show_game))
   end
 
   def command_events(payload, longterm)
@@ -437,25 +441,29 @@ class ScCommands
     @bot.with_throttle("events/#{longterm}/#{channel_id}", 20.seconds) do
       games = events_command[channel_id]
       show_game = games.size > 1 # show the game if there could be confusion
-      {"levents" => "LIVE", "uevents" => "UPCOMING"}.each do |category, label|
-        events = api.run_category(category)
-        next unless events
 
-        events_for_game = events.select{|e| games.includes?(e.game)}
-        events_filtered = @bot.filter_events(events_for_game, guild_id)
-        events_filtered_longterm = filter_longterm(events_filtered, longterm)
+      range = 0..max_events - 1 # -1 so that max=10 gives 10 events, not 11
 
-        if events_filtered_longterm.size > 0
-          events_display(channel_id, label, events_filtered_longterm, show_game)
-        elsif category == "uevents"
-          if events_filtered.size > 0 # we're in !longterm, but there are longterm events
-            events_display(channel_id, label, events_filtered, show_game)
-          elsif longterm
-            safe_create_message(channel_id, "No upcoming events for #{games.join(", ")} this week")
-          else
-            safe_create_message(channel_id, "No upcoming events for #{games.join(", ")} today.")
-          end
-        end
+      # display live events
+      levents = api.run_category("levents")
+      next unless levents
+      levents = @bot.filter_events(levents.select{|e| games.includes?(e.game)}, guild_id)
+      if levents.size > 0
+        safe_create_message(channel_id, " ** LIVE **\n" + @bot.format_events(levents[range], show_game, channel_id))
+      end
+
+      # display upcoming events
+      uevents = api.run_category("uevents")
+      next unless uevents
+      uevents = @bot.filter_events(uevents.select{|e| games.includes?(e.game)}, guild_id)
+      uevents_soon = filter_longterm(uevents, longterm)
+      if uevents.size > 0
+        # prefer uevents_soon if there are any, and we're not in longterm
+        events = uevents_soon.size > 0 ? uevents_soon : uevents
+        safe_create_message(channel_id, " ** UPCOMING **\n" + @bot.format_events(events[range], show_game))
+        events_display(channel_id, "UPCOMING", events, show_game)
+      else
+        safe_create_message(channel_id, "No upcoming events for #{games.join(", ")} this week")
       end
     end
   end

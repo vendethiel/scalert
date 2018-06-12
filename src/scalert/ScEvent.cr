@@ -20,8 +20,8 @@ class ScEvent
     include_game ? " (#{@game})" : ""
   end
 
-  def to_s(include_game = false)
-    " * #{name}#{show_game(include_game)} #{desc}"
+  def to_s(include_game = false, override_desc = nil)
+    " * #{name}#{show_game(include_game)} #{override_desc || desc}"
   end
 
   def desc
