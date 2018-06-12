@@ -12,7 +12,7 @@ class Alias
     end
   end
 
-  delegate :fetch, :[], :has_key?, to: @aliases
+  delegate :fetch, :[], :has_key?, :delete, to: @aliases
   def []=(key, value)
     @aliases[key] = value
     save!

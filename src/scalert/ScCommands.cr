@@ -329,22 +329,44 @@ class ScCommands
     # if we're just a mod and not an admin, the stream url is overriden per-guild only
     saved_name = is_admin ? name : "#{@bot.channel_id_to_guild_id(channel_id)}:#{name}"
 
-    stream_urls[saved_name] = clean_url
-    safe_create_message(channel_id, "Stream url of **#{name}**#{is_admin || " for this server"} set to <#{clean_url}>")
+    if clean_url != "" && clean_url != "<>" && clean_url != "\"\"" && clean_url != "0" && clean_url != "-"
+      stream_urls[saved_name] = clean_url
+      safe_create_message(channel_id, "Stream url of **#{name}**#{is_admin || " for this server"} set to <#{clean_url}>.")
+    else
+      stream_urls.delete(saved_name)
+      safe_create_message(channel_id, "Stream url of **#{name}**#{is_admin || " for this server"} removed.")
+    end
   end
 
   def command_help(payload)
     channel_id = payload.channel_id
 
     @bot.with_throttle("help/#{channel_id}", 20.seconds) do
-      mod_help = mod?(payload.author.id, channel_id) ? "\n * `!feature [lp|events|announcements] [on|off] [#{GAMES.join(",")},...]` - Enables or disable a bot feature for some (comma-separated) game(s)\n * `!command <command name> <command text>...` – Add a command with given text\n * `!filter mode [off|allow|deny]` - Sets the filter list to allow/deny or disables it.\n * `!filter [add|remove] <event name>...` - Adds or removes the event from the filter list." : ""
-      admin_help = admin?(payload.author.id) ? "\n * `!stream <event name>... <event url>` - Changes the stream URL of an event" : ""
-
       next unless guild_id = channel_id_to_guild_id(channel_id)
-      # a commands hash should never be empty (we supposedly clear the empty ones). If at some point, we change that, we can use .fetch(guild_id, {}).empty? instead
-      userdef_commands = config.commands.has_key?(guild_id) ? "\n * Server commands: #{format_user_commands(config.commands[guild_id].keys)}" : ""
 
-      safe_create_message(channel_id, "Bot commands:\n * `!events` - Shows a list of today's events\n * `!events all` - Shows this week's events\n * `!event <event name>...` - Timers for a specific event\n * `!help` - This command#{mod_help}#{admin_help}#{userdef_commands}")
+      command_parts = [
+        "`!events` - Shows a list of today's events\n * `!events all` - Shows this week's events",
+        "`!event <event name>...` - Timers for a specific event\n * `!help` - This command"
+      ]
+
+      if mod?(payload.author.id, channel_id)
+        command_parts += [
+          "`!feature [lp|events|announcements] [on|off] [#{GAMES.join(",")},...]` - Enables or disable a bot feature for some (comma-separated) game(s)",
+          "`!command <command name> <command text>...` – Add a command with given text",
+          "`!filter mode [off|allow|deny]` - Sets the filter list to allow/deny or disables it.",
+          "`!filter [add|remove] <event name>...` - Adds or removes the event from the filter list.",
+          "`!stream <event name>... <event url>` - Changes the stream URL of an event.",
+          "`!stream <event name>... -` - Removes the stream URL of an event."
+        ]
+      end
+      #admin_help = admin?(payload.author.id) ? : ""
+
+      if config.commands.has_key?(guild_id)
+        # a commands hash should never be empty (we supposedly clear the empty ones). If at some point, we change that, we can use .fetch(guild_id, {}).empty? instead
+        command_parts << "Server commands: #{format_user_commands(config.commands[guild_id].keys)}"
+      end
+
+      safe_create_message(channel_id, "Bot commands:\n" + command_parts.map{|c| " * #{c}" }.join("\n"))
     end
   end
 

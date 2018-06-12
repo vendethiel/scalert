@@ -18,7 +18,10 @@ class ScBot
 
   # format events for display. if a channel_id is included, tries to use per-guild event URL
   def format_events(events, show_game, channel_id = nil)
-    events.map{|e| e.to_s(show_game, channel_stream_url(channel_id, e.name))}.join("\n")
+    events.map do |e|
+      url = channel_stream_url(channel_id, e.name)
+      e.to_s(show_game, url.try{|link| "- <#{link}>"}) # TODO abstract the url formatting
+    end.join("\n")
   end
 
   def channel_id_to_guild_id(channel_id)
