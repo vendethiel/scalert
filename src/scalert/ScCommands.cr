@@ -380,7 +380,8 @@ class ScCommands
   def command_event_next(payload, event_name)
     channel_id = payload.channel_id
     guild_id = channel_id_to_guild_id(channel_id)
-    #TODO with_throttle?
+    # we do NOT throttle this command to avoid DDoS of throttle cache
+    # if we did, people could just spam `!event a`, `!event b`, `!event c`... to fill the cache
 
     # need !events to be enabled, so we can find which games to show
     return unless events_command.has_key?(payload.channel_id)
@@ -409,16 +410,17 @@ class ScCommands
 
     has_live_events = live_events_filtered.size > 0
     # now process live events
-    if live_events_filtered.size > 0
+    if has_live_events
       live_event = live_events_filtered[0]
-      message_parts << "Currently live: #{live_event.name}#{live_event.show_game(show_game)} #{live_event.desc}"
+      link = @bot.channel_stream_link(channel_id, live_event.name)
+      message_parts << "Currently live: #{live_event.name}#{live_event.show_game(show_game)} #{link || live_event.desc}"
     end
 
     # the event might be upcoming
-    live_perfect_matches = up_events.select{|e| e.name == event_name }
-    live_fuzzy_matches = up_events.select{|e| e.name.starts_with?(event_name) }
+    up_perfect_matches = up_events.select{|e| e.name == event_name }
+    up_fuzzy_matches = up_events.select{|e| e.name.starts_with?(event_name) }
     # if we know we found a fuzzy match for LIVE, force fuzzy
-    up_events_filtered = found_fuzzy || live_perfect_matches.size == 0 ? live_fuzzy_matches : live_perfect_matches
+    up_events_filtered = found_fuzzy || up_perfect_matches.size == 0 ? up_fuzzy_matches : up_perfect_matches
 
     # we found 2+ matches, make sure they're from the same game
     # this might bring us back to a single event only.
