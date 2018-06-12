@@ -331,10 +331,10 @@ class ScCommands
 
     if clean_url != "" && clean_url != "<>" && clean_url != "\"\"" && clean_url != "0" && clean_url != "-"
       stream_urls[saved_name] = clean_url
-      safe_create_message(channel_id, "Stream url of **#{name}**#{is_admin || " for this server"} set to <#{clean_url}>.")
+      safe_create_message(channel_id, "Stream url of **#{name}**#{is_admin ? "" : " for this server"} set to <#{clean_url}>.")
     else
       stream_urls.delete(saved_name)
-      safe_create_message(channel_id, "Stream url of **#{name}**#{is_admin || " for this server"} removed.")
+      safe_create_message(channel_id, "Stream url of **#{name}**#{is_admin ? "" : " for this server"} removed.")
     end
   end
 
