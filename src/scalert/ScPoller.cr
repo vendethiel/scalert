@@ -39,17 +39,17 @@ class ScPoller
   def poll_live_events
     current_events = api.run_category("levents").try{|c| c.map &.id} || [] of Int64
     with_poller(current_events, "levents") do |events|
-      begin
-        # for each channel to announce on...
-        announcements.each do |channel_id, games|
+      # for each channel to announce on...
+      announcements.each do |channel_id, games|
+        begin
           events_to_announce = poll_filter_events(events, games, channel_id)
           next unless events_to_announce.size > 0
 
           show_game = games.size > 1 # show the game if there could be confusion
           safe_create_message(channel_id, " ** LIVE **\n" + @bot.format_events(events_to_announce, show_game, channel_id))
+        rescue ex
+          puts "Rescued live events poller exception (channel: #{channel_id}, games: #{games})\n#{ex.inspect_with_backtrace}"
         end
-      rescue ex
-        puts "Rescued live events poller exception\n#{ex.inspect_with_backtrace}"
       end
 
       events # return events to mark "seen"
