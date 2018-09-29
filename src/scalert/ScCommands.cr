@@ -397,10 +397,11 @@ class ScCommands
     message_parts = [] of String
 
     # the event might be currently live
-    live_events_filtered = live_events.select{|e| e.name == event_name }
+    event_name_down = event_name.downcase
+    live_events_filtered = live_events.select{|e| e.name.downcase == event_name_down }
     if live_events_filtered.size == 0
       # no exact match, let's try fuzzy matching
-      live_events_filtered = live_events.select{|e| e.name.starts_with?(event_name) }
+      live_events_filtered = live_events.select{|e| e.name.downcase.starts_with?(event_name_down) }
       if live_events_filtered.size > 0
         # we got a fuzzy match. Mark it as fuzzy, so that upcoming knows to force fuzzy.
         # this is to prevent i.e. LIVE to use a partial match, and then UPCOMING to find a different event via perfect match
@@ -417,8 +418,8 @@ class ScCommands
     end
 
     # the event might be upcoming
-    up_perfect_matches = up_events.select{|e| e.name == event_name }
-    up_fuzzy_matches = up_events.select{|e| e.name.starts_with?(event_name) }
+    up_perfect_matches = up_events.select{|e| e.name.downcase == event_name_down }
+    up_fuzzy_matches = up_events.select{|e| e.name.downcase.starts_with?(event_name_down) }
     # if we know we found a fuzzy match for LIVE, force fuzzy
     up_events_filtered = found_fuzzy || up_perfect_matches.size == 0 ? up_fuzzy_matches : up_perfect_matches
 
