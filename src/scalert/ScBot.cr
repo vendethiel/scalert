@@ -25,6 +25,14 @@ class ScBot
     end.join("\n")
   end
 
+  # format event groups, don't ever use on LIVE events...
+  def format_events_grouped(events, show_game)
+    # here, we rely on the fact that Hash is ordered
+    group_hash = events.group_by{|e| {e.game, e.name} }
+    groups = group_hash.map{|(_, events)| ScEventGroup.new(events) }
+    groups.map{|g| g.to_s(show_game) }.join("\n")
+  end
+
   def channel_id_to_guild_id(channel_id)
     channel = @client.get_channel(channel_id) # TODO resolve_channel
     channel.guild_id

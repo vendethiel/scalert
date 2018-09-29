@@ -39,3 +39,12 @@ class ScEvent
   end
 end
 
+class ScEventGroup
+  def initialize(@events : Array(ScEvent))
+  end
+
+  # LOL if your .to_s has no side effects
+  def to_s(show_game)
+    @events[0].to_s(show_game, @events.map{|e| e.desc }.join(", "))
+  end
+end

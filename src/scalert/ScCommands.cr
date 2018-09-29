@@ -455,9 +455,6 @@ class ScCommands
     safe_create_message(payload.channel_id, message_parts.join("\n"))
   end
 
-  private def events_display(channel_id, label, events, show_game)
-  end
-
   def command_events(payload, longterm)
     return unless events_command.has_key?(payload.channel_id)
     channel_id = payload.channel_id
@@ -485,8 +482,7 @@ class ScCommands
       if uevents.size > 0
         # prefer uevents_soon if there are any, and we're not in longterm
         events = uevents_soon.size > 0 ? uevents_soon : uevents
-        safe_create_message(channel_id, " ** UPCOMING **\n" + @bot.format_events(events[range], show_game))
-        events_display(channel_id, "UPCOMING", events, show_game)
+        safe_create_message(channel_id, " ** UPCOMING **\n" + @bot.format_events_grouped(events[range], show_game))
       else
         safe_create_message(channel_id, "No upcoming events for #{games.join(", ")} this week")
       end
