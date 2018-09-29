@@ -44,6 +44,10 @@ class ScEventGroup
   end
 
   def to_s(show_game)
-    @events[0].to_s(show_game, @events.map{|e| e.timer }.join(", then "))
+    @events[0].to_s(show_game, " - #{desc}")
+  end
+
+  def desc
+    @events.map{|e| e.timer }.join(", then ")
   end
 end
