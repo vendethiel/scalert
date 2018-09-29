@@ -44,6 +44,6 @@ class ScEventGroup
   end
 
   def to_s(show_game)
-    @events[0].to_s(show_game, @events.map{|e| e.desc }.join(", "))
+    @events[0].to_s(show_game, @events.map{|e| e.timer }.join(", then "))
   end
 end
