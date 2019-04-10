@@ -27,7 +27,7 @@ class ScAPI
       return nil
     end
 
-    JSON.parse(response.body)[name]
+    JSON.parse(response.body)[name].as_a
   end
 
   def run_category(name) : Array(ScEvent) | Nil
