@@ -1,14 +1,11 @@
-require "./Alias"
-
 class ScAPI
-  def initialize(@stream_urls : Alias, @api_url : String)
+  def initialize(@api_url : String)
   end
 
   def map_events(events)
     events.compact_map do |event|
       name = ScEvent.json_name(event)
-      name_url = @stream_urls.fetch(name, nil)
-      ScEvent.new(event["id"].as_s.to_i64, name, event["game"].as_s.upcase, event, name_url)
+      ScEvent.new(event["id"].as_s.to_i64, name, event["game"].as_s.upcase, event)
     end
   end
 

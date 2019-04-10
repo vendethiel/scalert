@@ -4,16 +4,20 @@ class ScBot
   getter api : ScAPI
   getter config : ScConfig
   getter client : Discord::Client
-  getter stream_urls : Alias
 
-  def initialize(@client : Discord::Client, @config : ScConfig, @stream_urls : Alias, @api : ScAPI)
+  delegate stream_urls, to: @config
+
+  def initialize(@client : Discord::Client, @config : ScConfig, @api : ScAPI)
     @timers = {} of String => Time
   end
 
   # resolves a channel and an event name to the channel's guild stream url for that name
   def channel_stream_link(channel_id, event_name)
+    global_url = @config.stream_urls.fetch(event_name, nil)
+    return global_url if global_url
+
     return nil unless channel_id # accept nil
-    url = @stream_urls.fetch("#{channel_id_to_guild_id(channel_id)}:#{event_name}", nil)
+    url = @config.stream_urls.fetch("#{channel_id_to_guild_id(channel_id)}:#{event_name}", nil)
     url.try{|link| "- <#{link}>"}
   end
 

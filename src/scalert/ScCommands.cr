@@ -35,10 +35,10 @@ class ScCommands
       elsif parts[0] == "!feature" && parts.size == 2
         command_feature_query(payload, parts[1])
 
-      elsif parts[0] == "!stream"
-        parts.shift # remove "!stream"
+      elsif parts[0] == "!streamurl" || parts[0] == "!stream-url" || parts[0] == "!stream_url"
+        parts.shift # remove the command part
         url = parts.pop
-        command_stream(payload, parts.join(" "), url)
+        command_stream_url(payload, parts.join(" "), url)
 
       elsif parts[0] == "!filter" && parts.size == 2 && parts[1] == "mode"
         command_filter_mode_query(payload)
@@ -317,7 +317,7 @@ class ScCommands
     Process.exit
   end
 
-  def command_stream(payload, name, url)
+  def command_stream_url(payload, name, url)
     channel_id = payload.channel_id
     unless mod?(payload.author.id, channel_id)
       puts("Unauthorized command from #{payload.author.id}")

@@ -5,14 +5,12 @@ class ScEvent
   getter timer : String?
   getter url : String?
 
-  def initialize(@id, @name, @game, event, name_url)
+  def initialize(@id, @name, @game, event)
     if event["timer"]?
         @timer = event["timer"].as_s
       @desc = @timer
-    elsif name_url # by-name stream URL
-      @url = name_url
-    elsif event["url"]?
-      @url = event["url"].as_s
+    elsif url = event["url"].as_s?
+      @url = url
     end
   end
 

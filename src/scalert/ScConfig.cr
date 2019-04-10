@@ -20,7 +20,8 @@ class ScConfig
     # block mode: true is allowlist, false is denylist
     filter_mode: {type: Hash(Discord::Snowflake, Bool), converter: BoolMapConverter},
     filter_list: {type: Hash(Discord::Snowflake, Array(String)), converter: GameHashConverter},
-    admins: Array(UInt64)
+    admins: Array(UInt64),
+    stream_urls: Hash(String, String),
   )
 end
 
