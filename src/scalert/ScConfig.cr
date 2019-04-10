@@ -16,6 +16,7 @@ class ScConfig
     announcements: {type: Hash(Discord::Snowflake, Array(String)), converter: GameHashConverter},
     events_command: {type: Hash(Discord::Snowflake, Array(String)), converter: GameHashConverter},
     lp_event_channels: {type: Hash(Discord::Snowflake, Array(String)), converter: GameHashConverter},
+    streams_command: {type: Hash(Discord::Snowflake, Array(String)), converter: GameHashConverter},
     commands: {type: Hash(Discord::Snowflake, Hash(String, String)), converter: CommandConverter},
     # block mode: true is allowlist, false is denylist
     filter_mode: {type: Hash(Discord::Snowflake, Bool), converter: BoolMapConverter},

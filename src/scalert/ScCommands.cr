@@ -1,5 +1,5 @@
 class ScCommands
-  COMMANDS = %w(events help exit feature stream command)
+  COMMANDS = %w(events help exit feature stream-url streamurl stream_url streams stream command)
   BOOL_TRUE = %w(on yes y + 1 enable start enter add <<)
   BOOL_FALSE = %w(off no n - 0 disable stop leave rm remove)
 
@@ -8,7 +8,7 @@ class ScCommands
 
   delegate client, api, config, stream_urls, to: @bot
   delegate safe_create_message, filter_longterm, known_channel?, mod?, admin?, channel_id_to_guild_id, to: @bot
-  delegate max_events, events_command, lp_event_channels, announcements, to: @bot.config
+  delegate max_events, events_command, lp_event_channels, announcements, streams_command, to: @bot.config
 
   def run
     client.on_message_create do |payload|
@@ -39,6 +39,9 @@ class ScCommands
         parts.shift # remove the command part
         url = parts.pop
         command_stream_url(payload, parts.join(" "), url)
+
+      elsif parts[0] == "!streams" || parts[0] == "!stream"
+	command_list_streams(payload, parts.size < 2 ? nil : parts[1].downcase)
 
       elsif parts[0] == "!filter" && parts.size == 2 && parts[1] == "mode"
         command_filter_mode_query(payload)
@@ -242,7 +245,7 @@ class ScCommands
 
     hash = hash_for_feature(feature)
     unless hash
-      safe_create_message(payload.channel_id, "Invalid feature, try lp/events/announcements")
+      safe_create_message(payload.channel_id, "Invalid feature, see !help.")
       return
     end
     games = hash.fetch(channel, %w())
@@ -275,7 +278,7 @@ class ScCommands
 
     hash = hash_for_feature(feature)
     unless hash
-      safe_create_message(channel, "Invalid feature, try lp/events/announcements")
+      safe_create_message(channel, "Invalid feature, see !help.")
       return
     end
 
@@ -303,12 +306,14 @@ class ScCommands
 
   private def hash_for_feature(feature)
     case feature
-    when "lp"
+    when "liquipedia", "lp"
       lp_event_channels
-    when "events"
+    when "events", "ev"
       events_command
-    when "announcements"
+    when "announcements", "anns", "ann"
       announcements
+    when "streams", "stream", "str"
+      streams_command
     end
   end
 
@@ -336,6 +341,7 @@ class ScCommands
       stream_urls.delete(saved_name)
       safe_create_message(channel_id, "Stream url of **#{name}**#{is_admin ? "" : " for this server"} removed.")
     end
+    config.save!
   end
 
   def command_help(payload)
@@ -346,17 +352,19 @@ class ScCommands
 
       command_parts = [
         "`!events` - Shows a list of today's events\n * `!events all` - Shows this week's events",
-        "`!event <event name>...` - Timers for a specific event\n * `!help` - This command"
+        "`!event <event name>...` - Timers for a specific event\n * `!help` - This command",
+        "`!streams` - Shows the currently live streams.",
       ]
 
       if mod?(payload.author.id, channel_id)
         command_parts += [
-          "`!feature [lp|events|announcements] [on|off] [#{GAMES.join(",")},...]` - Enables or disable a bot feature for some (comma-separated) game(s)",
-          "`!command <command name> <command text>...` – Add a command with given text",
+          "`!feature [lp|events|announcements|streams] [on|off] [#{GAMES.join(",")},...]` - Enables or disable a bot feature for some (comma-separated) game(s)",
+          "`!command <command name> <command text>...` - Add a command with given text.",
+          "`!command <command name>` - Removes a command.",
           "`!filter mode [off|allow|deny]` - Sets the filter list to allow/deny or disables it.",
           "`!filter [add|remove] <event name>...` - Adds or removes the event from the filter list.",
-          "`!stream <event name>... <event url>` - Changes the stream URL of an event.",
-          "`!stream <event name>... -` - Removes the stream URL of an event."
+          "`!stream-url <event name>... <event url>` - Changes the stream URL of an event.",
+          "`!stream-url <event name>... -` - Removes the stream URL of an event.",
         ]
       end
       #admin_help = admin?(payload.author.id) ? : ""
@@ -413,7 +421,7 @@ class ScCommands
     # now process live events
     if has_live_events
       live_event = live_events_filtered[0]
-      link = @bot.channel_stream_link(channel_id, live_event.name)
+      link = @bot.channel_stream_link(live_event.name, channel_id, guild_id)
       message_parts << "Currently live: #{live_event.name}#{live_event.show_game(show_game)} #{link || live_event.desc}"
     end
 
@@ -455,14 +463,55 @@ class ScCommands
     safe_create_message(payload.channel_id, message_parts.join("\n"))
   end
 
-  def command_events(payload, longterm)
-    return unless events_command.has_key?(payload.channel_id)
+  def command_list_streams(payload, mode)
     channel_id = payload.channel_id
+    return unless streams_command.has_key?(channel_id)
+    guild_id = channel_id_to_guild_id(channel_id)
+
+    mode = "all" unless mode # show all streams by default, will be sorted by featured anyway
+    return unless %w(all featured unfeatured).includes?(mode)
+    # TODO per-game filter
+    # TODO per-race filter
+
+    @bot.with_throttle("streams/#{channel_id}/#{mode}", 20.seconds) do
+      games = streams_command[channel_id]
+      show_game = games.size > 1 # show the game if there could be confusion
+
+      range = 0..max_events - 1 # -1 so that max=10 gives 10 events, not 11
+
+      streams = api.run_streams
+      next unless streams
+      # TODO teach LPAPI to emit correct game names, remove SCBW specialcase
+      streams = streams.select{|s| games.includes?(s.game) || s.game.downcase == "starcraft: brood war" }
+
+      # reverse <=> order so that we have higher on top. Could also .reverse
+      streams = streams.sort{|a, b| [b.featured ? 1 : 0, b.viewers] <=> [a.featured ? 1 : 0, a.viewers] }
+  
+      case mode
+      when "featured"
+        streams = streams.select{|e| e.featured }
+      when "unfeatured"
+        streams = streams.reject{|e| e.featured }
+      end
+      streams = streams[range] # apply range AFTER possible filter(s)
+
+      if streams.size > 0
+        safe_create_message(channel_id, "** STREAMS **\n" + @bot.format_streams(streams, show_game, channel_id, guild_id))
+      else
+        safe_create_message(channel_id, "No streams ON for #{games.join(", ")} in mode #{mode}")
+      end
+    end
+  end
+
+  def command_events(payload, longterm)
+    channel_id = payload.channel_id
+    return unless events_command.has_key?(channel_id)
     guild_id = channel_id_to_guild_id(channel_id)
 
     @bot.with_throttle("events/#{longterm}/#{channel_id}", 20.seconds) do
       games = events_command[channel_id]
       show_game = games.size > 1 # show the game if there could be confusion
+      # TODO if games.size > 1 BUT all events have same game, show "** LIVE (SC2) **"
 
       range = 0..max_events - 1 # -1 so that max=10 gives 10 events, not 11
 

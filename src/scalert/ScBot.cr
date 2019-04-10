@@ -12,20 +12,30 @@ class ScBot
   end
 
   # resolves a channel and an event name to the channel's guild stream url for that name
-  def channel_stream_link(channel_id, event_name)
+  def channel_stream_link(event_name, channel_id, guild_id = nil)
     global_url = @config.stream_urls.fetch(event_name, nil)
     return global_url if global_url
 
-    return nil unless channel_id # accept nil
-    url = @config.stream_urls.fetch("#{channel_id_to_guild_id(channel_id)}:#{event_name}", nil)
-    url.try{|link| "- <#{link}>"}
+    if !guild_id
+      return nil unless channel_id # accept nil
+      guild_id = channel_id_to_guild_id(channel_id)
+    end
+    url = @config.stream_urls.fetch("#{guild_id}:#{event_name}", nil)
+    url.try{|link| " - <#{link}>"}
+  end
+
+  def format_streams(streams, show_game, channel_id, guild_id)
+    streams.map do |s|
+      url = channel_stream_link(s.name, channel_id, guild_id)
+      s.to_s(show_game, url)
+    end.join("\n")
   end
 
   # format events for display. if a channel_id is included, tries to use per-guild event URL
   def format_events(events, show_game, channel_id = nil)
     events.map do |e|
-      url = channel_stream_link(channel_id, e.name)
-      e.to_s(show_game, url) # TODO abstract the url formatting
+      url = channel_stream_link(e.name, channel_id)
+      e.to_s(show_game, url)
     end.join("\n")
   end
 
