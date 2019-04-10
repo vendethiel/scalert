@@ -353,7 +353,7 @@ class ScCommands
       command_parts = [
         "`!events` - Shows a list of today's events\n * `!events all` - Shows this week's events",
         "`!event <event name>...` - Timers for a specific event\n * `!help` - This command",
-        "`!streams` - Shows the currently live streams.",
+        "`!streams (all|featured|unfeatured)` - Shows the currently live featured streams.",
       ]
 
       if mod?(payload.author.id, channel_id)
@@ -468,7 +468,7 @@ class ScCommands
     return unless streams_command.has_key?(channel_id)
     guild_id = channel_id_to_guild_id(channel_id)
 
-    mode = "all" unless mode # show all streams by default, will be sorted by featured anyway
+    mode = "featured" unless mode # show only featured streams by default
     return unless %w(all featured unfeatured).includes?(mode)
     # TODO per-game filter
     # TODO per-race filter
@@ -481,8 +481,7 @@ class ScCommands
 
       streams = api.run_streams
       next unless streams
-      # TODO teach LPAPI to emit correct game names, remove SCBW specialcase
-      streams = streams.select{|s| games.includes?(s.game) || s.game.downcase == "starcraft: brood war" }
+      streams = streams.select{|s| games.includes?(s.game) }
 
       # reverse <=> order so that we have higher on top. Could also .reverse
       streams = streams.sort{|a, b| [b.featured ? 1 : 0, b.viewers] <=> [a.featured ? 1 : 0, a.viewers] }
