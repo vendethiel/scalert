@@ -14,12 +14,15 @@ class ScBot
   # resolves a channel and an event name to the channel's guild stream url for that name
   def channel_stream_link(event_name, channel_id, guild_id = nil)
     global_url = @config.stream_urls.fetch(event_name, nil)
-    return global_url if global_url
+    if global_url
+      return " - <#{global_url}>"
+    end
 
     if !guild_id
       return nil unless channel_id # accept nil
       guild_id = channel_id_to_guild_id(channel_id)
     end
+
     url = @config.stream_urls.fetch("#{guild_id}:#{event_name}", nil)
     url.try{|link| " - <#{link}>"}
   end

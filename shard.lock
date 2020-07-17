@@ -1,6 +1,6 @@
 version: 1.0
 shards:
   discordcr:
-    github: meew0/discordcr
-    commit: 1d40f5fa0c9069a817ddbb3daf26782607d69d7d
+    github: discordcr/discordcr
+    commit: 2fefc6c544c23475252438a6ca29d763eb1755fa
 

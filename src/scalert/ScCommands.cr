@@ -294,7 +294,11 @@ class ScCommands
     end
     updated_games = bool ? current_games + games : current_games - games
     new_games = updated_games.uniq
-    hash[channel] = new_games
+    if new_games.empty?
+      hash.delete(channel)
+    else
+      hash[channel] = new_games
+    end
     config.save!
 
     given_games = games.sort.join(", ") # games to enable/disable
@@ -393,8 +397,9 @@ class ScCommands
 
     # need !events to be enabled, so we can find which games to show
     return unless events_command.has_key?(payload.channel_id)
-
     games = events_command[channel_id]
+    return if games.empty?
+
     show_game = games.size > 1 # plural yada yada
     live_events = api.run_category("levents").try{|ev| ev.select{|e| games.includes?(e.game)}}
     return unless live_events
@@ -466,6 +471,8 @@ class ScCommands
   def command_list_streams(payload, mode)
     channel_id = payload.channel_id
     return unless streams_command.has_key?(channel_id)
+    games = streams_command[channel_id]
+    return if games.empty?
     guild_id = channel_id_to_guild_id(channel_id)
 
     mode = "featured" unless mode # show only featured streams by default
@@ -474,7 +481,6 @@ class ScCommands
     # TODO per-race filter
 
     @bot.with_throttle("streams/#{channel_id}/#{mode}", 20.seconds) do
-      games = streams_command[channel_id]
       show_game = games.size > 1 # show the game if there could be confusion
 
       range = 0..max_events - 1 # -1 so that max=10 gives 10 events, not 11
@@ -505,10 +511,11 @@ class ScCommands
   def command_events(payload, longterm)
     channel_id = payload.channel_id
     return unless events_command.has_key?(channel_id)
+    games = events_command[channel_id]
+    return if games.empty?
     guild_id = channel_id_to_guild_id(channel_id)
 
     @bot.with_throttle("events/#{longterm}/#{channel_id}", 20.seconds) do
-      games = events_command[channel_id]
       show_game = games.size > 1 # show the game if there could be confusion
       # TODO if games.size > 1 BUT all events have same game, show "** LIVE (SC2) **"
 

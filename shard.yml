@@ -10,8 +10,8 @@ targets:
 
 dependencies:
   discordcr:
-    github: meew0/discordcr
-    tag: 1d40f5fa0c9069a817ddbb3daf26782607d69d7d
+    github: discordcr/discordcr
+    branch: master
      
 crystal: 0.23.1
 
