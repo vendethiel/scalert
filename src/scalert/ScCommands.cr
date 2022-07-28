@@ -8,12 +8,16 @@ class ScCommands
 
   delegate client, api, config, stream_urls, to: @bot
   delegate safe_create_message, filter_longterm, known_channel?, mod?, admin?, channel_id_to_guild_id, to: @bot
-  delegate max_events, events_command, lp_event_channels, announcements, streams_command, to: @bot.config
+  delegate max_events, events_command, lp_event_channels, announcements, streams_command, banlist, to: @bot.config
 
   def run
     client.on_message_create do |payload|
-      puts "Received from #{payload.author.id}: #{payload.content}"
       next if payload.content == ""
+      if banlist.includes?(payload.author.id)
+	puts "Blacklisted #{payload.author.id}"
+	next
+      end
+      puts "Received from #{payload.author.id}: #{payload.content}"
 
       parts = payload.content.split(" ")
       if payload.content == "!events"
@@ -41,8 +45,7 @@ class ScCommands
         command_stream_url(payload, parts.join(" "), url)
 
       elsif parts[0] == "!streams" || parts[0] == "!stream"
-	command_list_streams(payload, parts.size < 2 ? nil : parts[1].downcase)
-
+        command_list_streams(payload, parts.size < 2 ? nil : parts[1].downcase)
       elsif parts[0] == "!filter" && parts.size == 2 && parts[1] == "mode"
         command_filter_mode_query(payload)
       elsif parts[0] == "!filter" && parts.size == 3 && parts[1] == "mode"

@@ -23,6 +23,7 @@ class ScConfig
     filter_list: {type: Hash(Discord::Snowflake, Array(String)), converter: GameHashConverter},
     admins: Array(UInt64),
     stream_urls: Hash(String, String),
+    banlist: Array(UInt64),
   )
 end
 
