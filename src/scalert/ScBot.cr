@@ -69,7 +69,7 @@ class ScBot
       return false unless guild_id = channel_id_to_guild_id(channel_id) # dm
       guild = @client.get_guild(guild_id) # TODO resolve_guild
 
-      # A server owner is always an admin, even without a role with associated permissions.
+      # A server owner is always a mod, even without a role with associated permissions.
       if guild.owner_id == user_id
         return true
       end
@@ -92,6 +92,7 @@ class ScBot
     return true if @config.announcements.has_key?(channel)
     return true if @config.lp_event_channels.has_key?(channel)
     return true if @config.events_command.has_key?(channel)
+    return true if @config.streams_command.has_key?(channel)
     return false
   end
 

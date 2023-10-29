@@ -14,8 +14,8 @@ class ScCommands
     client.on_message_create do |payload|
       next if payload.content == ""
       if banlist.includes?(payload.author.id)
-	puts "Blacklisted #{payload.author.id}"
-	next
+        puts "Blacklisted #{payload.author.id}"
+        next
       end
       puts "Received from #{payload.author.id}: #{payload.content}"
 
@@ -54,6 +54,9 @@ class ScCommands
         parts.shift # remove "!filter"
         bool = parts.shift
         command_filter_manage(payload, bool, parts.join(" "))
+
+      elsif payload.content == "!tree"
+        command_tree(payload)
 
       elsif payload.content == "!command"
         # TODO probably list commands (like !help, but only user-def commands?)
@@ -328,6 +331,34 @@ class ScCommands
     return unless admin?(payload.author.id)
     Process.exit
   end
+
+  def command_tree(payload)
+    return unless admin?(payload.author.id)
+    all_guilds = {}
+    unknown = []
+    [lp_event_channels, events_command, announcements, streams_command].each do |hash|
+      hash.each_key do |channel_id|
+        channel = @client.get_channel(channel_id)
+        if channel
+          guild_id = channel.guild_id
+          channels = all_guilds.fetch(guild_id, [] of String)
+          channels << channel.name
+          all_guilds[guild_id] = channels
+        else
+          unknown << channel
+        end
+      end
+    end
+    [config.filter_mode, config.filter_list].each do |filter|
+      filter.each_key do |guild_id|
+        if not all_guilds.has_key?(guild_id)
+          all_guilds[guild_id] = []
+        end
+      end
+    end
+
+  end
+
 
   def command_stream_url(payload, name, url)
     channel_id = payload.channel_id

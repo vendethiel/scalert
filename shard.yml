@@ -10,7 +10,7 @@ targets:
 
 dependencies:
   discordcr:
-    github: discordcr/discordcr
+    github: shardlab/discordcr
     branch: master
      
 crystal: 0.23.1

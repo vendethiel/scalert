@@ -9,7 +9,7 @@ class ScStream
   end
 
   def to_s(include_game, override_url = nil)
-    " * #{name}#{show_game(include_game)}#{override_url || show_url}#{show_viewers}"
+    "* #{name}#{show_game(include_game)}#{override_url || show_url}#{show_viewers}"
   end
 
   def show_url

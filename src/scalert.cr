@@ -12,6 +12,9 @@ config = ScConfig.from_json(File.read(CONFIG_FILE))
 config.filename = CONFIG_FILE
 
 client = Discord::Client.new(token: ENV["SCALERT_TOKEN"], client_id: ENV["SCALERT_CLIENTID"].to_u64)
+cache = Discord::Cache.new(client)
+client.cache = cache
+
 print("Bot #{ENV["SCALERT_TOKEN"]} client_id #{ENV["SCALERT_CLIENTID"].to_u64}")
 api = ScAPI.new(ENV["SCALERT_API_URL"])
 begin
