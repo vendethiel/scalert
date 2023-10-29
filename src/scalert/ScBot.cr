@@ -8,6 +8,8 @@ class ScBot
   delegate stream_urls, to: @config
 
   def initialize(@client : Discord::Client, @config : ScConfig, @api : ScAPI)
+    @cache = Discord::Cache.new(@client)
+    @client.cache = @cache
     @timers = {} of String => Time
   end
 
@@ -51,15 +53,15 @@ class ScBot
   end
 
   def channel_name(channel_id)
-    @client.get_channel(channel_id).try &.name
+    @cache.resolve_channel(channel_id).try &.name
   end
 
   def guild_name(guild_id)
-    @client.get_guild(guild_id).try &.name
+    @cache.resolve_guild(guild_id).try &.name
   end
 
   def channel_id_to_guild_id(channel_id)
-    channel = @client.get_channel(channel_id)
+    channel = @cache.resolve_channel(channel_id)
     channel.guild_id
   end
 
