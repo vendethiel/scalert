@@ -338,7 +338,7 @@ class ScCommands
     unknown = [] of String
     [lp_event_channels, events_command, announcements, streams_command].each do |hash|
       hash.each_key do |channel_id|
-        guild_id = @client.channel_id_to_guild_id(channel_id)
+        guild_id = channel_id_to_guild_id(channel_id)
         if guild_id
           channels = all_guilds.fetch(guild_id, [] of Int64)
           channels << channel.name
@@ -381,7 +381,7 @@ class ScCommands
     clean_url = url.lchop('<').rchop('>')
     is_admin = admin?(payload.author.id)
     # if we're just a mod and not an admin, the stream url is overriden per-guild only
-    saved_name = is_admin ? name : "#{@bot.channel_id_to_guild_id(channel_id)}:#{name}"
+    saved_name = is_admin ? name : "#{channel_id_to_guild_id(channel_id)}:#{name}"
 
     if clean_url != "" && clean_url != "<>" && clean_url != "\"\"" && clean_url != "0" && clean_url != "-"
       stream_urls[saved_name] = clean_url
