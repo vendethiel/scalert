@@ -378,7 +378,7 @@ class ScCommands
       "- #{channel_id}"
     end
 
-    if deleted.length > 0
+    if deleted.size > 0
       safe_create_message(payload.channel_id, "\n\n** DELETED **\n" + deleted.join("\n"))
     end
   end
