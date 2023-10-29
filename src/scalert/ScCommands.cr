@@ -344,7 +344,7 @@ class ScCommands
           channels << channel_id
           all_guilds[guild_id] = channels
         else
-          unknown << channel
+          unknown << channel_id
         end
       end
     end
