@@ -19,7 +19,7 @@ class ScEvent
   end
 
   def to_s(include_game = false, override_desc = nil)
-    " * #{name}#{show_game(include_game)}#{override_desc || desc}"
+    "* #{name}#{show_game(include_game)}#{override_desc || desc}"
   end
 
   def desc
