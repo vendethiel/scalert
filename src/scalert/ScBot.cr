@@ -54,10 +54,14 @@ class ScBot
 
   def channel_name(channel_id)
     @cache.resolve_channel(channel_id).try &.name
+  rescue Discord::CodeException
+    nil
   end
 
   def guild_name(guild_id)
     @cache.resolve_guild(guild_id).try &.name
+  rescue Discord::CodeException
+    nil
   end
 
   def channel_id_to_guild_id(channel_id)

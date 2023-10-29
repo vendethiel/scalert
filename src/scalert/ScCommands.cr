@@ -346,6 +346,8 @@ class ScCommands
         else
           unknown << channel_id
         end
+      rescue Discord::CodeException
+        unknown << channel_id
       end
     end
 
