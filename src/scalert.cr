@@ -16,7 +16,7 @@ client = Discord::Client.new(token: ENV["SCALERT_TOKEN"], client_id: ENV["SCALER
 print("Bot #{ENV["SCALERT_TOKEN"]} client_id #{ENV["SCALERT_CLIENTID"].to_u64}")
 api = ScAPI.new(ENV["SCALERT_API_URL"])
 begin
-  scbot = ScBot.new(client, cache, config, api)
+  scbot = ScBot.new(client, config, api)
   scalert = ScAlerter.new(scbot)
   scalert.run
   client.run
