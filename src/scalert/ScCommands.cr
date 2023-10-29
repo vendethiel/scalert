@@ -373,8 +373,10 @@ class ScCommands
       "- #{channel_id}"
     end.join("\n")
 
-    safe_create_message(payload.channel_id, "** TREE **\n\n" + tree)
-    safe_create_message(payload.channel_id, "** DELETED **\n" + deleted)
+    message = "** TREE **\n\n" + tree + "\n\n" + "** DELETED **\n" + deleted
+    message.lines.each_slice(10, true) do |lines|
+      safe_create_message(payload.channel_id, lines.join("\n"))
+    end
   end
 
 
