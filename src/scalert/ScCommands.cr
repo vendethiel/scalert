@@ -338,10 +338,9 @@ class ScCommands
     unknown = [] of String
     [lp_event_channels, events_command, announcements, streams_command].each do |hash|
       hash.each_key do |channel_id|
-        channel = @client.get_channel(channel_id)
-        if channel
-          guild_id = channel.guild_id
-          channels = all_guilds.fetch(guild_id, [] of String)
+        guild_id = @client.channel_id_to_guild_id(channel_id)
+        if guild_id
+          channels = all_guilds.fetch(guild_id, [] of Int64)
           channels << channel.name
           all_guilds[guild_id] = channels
         else
@@ -349,14 +348,26 @@ class ScCommands
         end
       end
     end
+
     [config.filter_mode, config.filter_list].each do |filter|
       filter.each_key do |guild_id|
         if not all_guilds.has_key?(guild_id)
-          all_guilds[guild_id] = [] of String
+          all_guilds[guild_id] = [] of Int64
         end
       end
     end
 
+    message = all_guilds.map do |guild_id, channels|
+      guild_name = @bot.guild_name(guild_id) || "<DELETED>"
+      channels_text = channels.map do |channel_id|
+        channel_name = @bot.channel_name(channel_id) || "<DELETED>"
+        " * #{channel_name} (#{channel_id})"
+      end.join("\n")
+
+      "* #{guild_name} (#{guild_id})\n" + channels_text
+    end.join("\n\n")
+
+    safe_create_message(payload.channel_id, "** TREE **\n\n" + message)
   end
 
 

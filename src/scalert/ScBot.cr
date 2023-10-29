@@ -50,8 +50,16 @@ class ScBot
     groups.map{|g| g.to_s(show_game) }.join("\n")
   end
 
+  def channel_name(channel_id)
+    @client.cache.resolve_channel(channel_id).try &.name
+  end
+
+  def guild_name(guild_id)
+    @client.cache.resolve_guild(guild_id).try &.name
+  end
+
   def channel_id_to_guild_id(channel_id)
-    channel = @client.get_channel(channel_id) # TODO resolve_channel
+    channel = @client.cache.resolve_channel(channel_id)
     channel.guild_id
   end
 
