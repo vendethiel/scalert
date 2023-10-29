@@ -334,8 +334,8 @@ class ScCommands
 
   def command_tree(payload)
     return unless admin?(payload.author.id)
-    all_guilds = {}
-    unknown = []
+    all_guilds = {} of Int64 => Array(String)
+    unknown = [] of String
     [lp_event_channels, events_command, announcements, streams_command].each do |hash|
       hash.each_key do |channel_id|
         channel = @client.get_channel(channel_id)
