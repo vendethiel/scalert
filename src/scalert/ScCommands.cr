@@ -359,24 +359,26 @@ class ScCommands
       end
     end
 
-    tree = all_guilds.map do |guild_id, channels|
+    safe_create_message(payload.channel_id, "** TREE **\n");
+    all_guilds.map do |guild_id, channels|
       guild_name = @bot.guild_name(guild_id) || "<DELETED>"
       channels_text = channels.map do |channel_id|
         channel_name = @bot.channel_name(channel_id) || "<DELETED>"
         " * #{channel_name} (#{channel_id})"
       end.join("\n")
 
-      "* #{guild_name} (#{guild_id})\n" + channels_text
-    end.join("\n\n")
+      "* #{guild_name} (#{guild_id})\n#{channels_text}"
+    end.each_slice(3) do |guild_trees|
+      # There's no proper way to split message by length because
+      #  indented `*`s do not work properly in Discord.
+      safe_create_message(payload.channel_id, guild_trees.join("\n\n"))
+    end
 
     deleted = unknown.map do |channel_id|
       "- #{channel_id}"
     end.join("\n")
 
-    message = "** TREE **\n\n" + tree + "\n\n" + "** DELETED **\n" + deleted
-    message.lines.each_slice(10, true) do |lines|
-      safe_create_message(payload.channel_id, lines.join("\n"))
-    end
+    safe_create_message(payload.channel_id, "\n\n** DELETED **\n" + deleted)
   end
 
 
