@@ -334,13 +334,13 @@ class ScCommands
 
   def command_tree(payload)
     return unless admin?(payload.author.id)
-    all_guilds = {} of Int64 => Array(Int64)
+    all_guilds = {} of Discord::Snowflake => Array(Discord::Snowflake)
     unknown = [] of String
     [lp_event_channels, events_command, announcements, streams_command].each do |hash|
       hash.each_key do |channel_id|
         guild_id = channel_id_to_guild_id(channel_id)
         if guild_id
-          channels = all_guilds.fetch(guild_id, [] of Int64)
+          channels = all_guilds.fetch(guild_id, [] of Discord::Snowflake)
           channels << channel_id
           all_guilds[guild_id] = channels
         else
@@ -352,7 +352,7 @@ class ScCommands
     [config.filter_mode, config.filter_list].each do |filter|
       filter.each_key do |guild_id|
         if not all_guilds.has_key?(guild_id)
-          all_guilds[guild_id] = [] of Int64
+          all_guilds[guild_id] = [] of Discord::Snowflake
         end
       end
     end
