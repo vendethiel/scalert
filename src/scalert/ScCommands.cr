@@ -362,7 +362,7 @@ class ScCommands
     safe_create_message(payload.channel_id, "** TREE **\n");
     all_guilds.map do |guild_id, channels|
       guild_name = @bot.guild_name(guild_id) || "<DELETED>"
-      channels_text = channels.map do |channel_id|
+      channels_text = channels.to_set.map do |channel_id|
         channel_name = @bot.channel_name(channel_id) || "<DELETED>"
         " * #{channel_name} (#{channel_id})"
       end.join("\n")
