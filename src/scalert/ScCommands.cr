@@ -352,7 +352,7 @@ class ScCommands
     [config.filter_mode, config.filter_list].each do |filter|
       filter.each_key do |guild_id|
         if not all_guilds.has_key?(guild_id)
-          all_guilds[guild_id] = []
+          all_guilds[guild_id] = [] of String
         end
       end
     end
