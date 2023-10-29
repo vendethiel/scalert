@@ -376,9 +376,11 @@ class ScCommands
 
     deleted = unknown.map do |channel_id|
       "- #{channel_id}"
-    end.join("\n")
+    end
 
-    safe_create_message(payload.channel_id, "\n\n** DELETED **\n" + deleted)
+    if deleted.length > 0
+      safe_create_message(payload.channel_id, "\n\n** DELETED **\n" + deleted.join("\n"))
+    end
   end
 
 
