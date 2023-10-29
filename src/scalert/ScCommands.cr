@@ -335,7 +335,7 @@ class ScCommands
   def command_tree(payload)
     return unless admin?(payload.author.id)
     all_guilds = {} of Discord::Snowflake => Array(Discord::Snowflake)
-    unknown = [] of String
+    unknown = [] of Discord::Snowflake
     [lp_event_channels, events_command, announcements, streams_command].each do |hash|
       hash.each_key do |channel_id|
         guild_id = channel_id_to_guild_id(channel_id)
@@ -357,7 +357,7 @@ class ScCommands
       end
     end
 
-    message = all_guilds.map do |guild_id, channels|
+    tree = all_guilds.map do |guild_id, channels|
       guild_name = @bot.guild_name(guild_id) || "<DELETED>"
       channels_text = channels.map do |channel_id|
         channel_name = @bot.channel_name(channel_id) || "<DELETED>"
@@ -367,7 +367,12 @@ class ScCommands
       "* #{guild_name} (#{guild_id})\n" + channels_text
     end.join("\n\n")
 
-    safe_create_message(payload.channel_id, "** TREE **\n\n" + message)
+    deleted = unknown.map do |channel_id|
+      "- #{channel_id}"
+    end.join("\n")
+
+    safe_create_message(payload.channel_id, "** TREE **\n\n" + tree)
+    safe_create_message(payload.channel_id, "** DELETED **\n" + deleted)
   end
 
 
